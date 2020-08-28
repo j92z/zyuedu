@@ -1,27 +1,49 @@
 class SourcesRule {
   String ruleString;
-  List<RuleItem> ruleList;
+  String rule;
+  List<String> ruleList = [];
   SourcesRule(String ruleString) {
-    this.ruleString = ruleString;
+    this.ruleString = ruleString.replaceAll("'", "\"");
+    // this.rule = this.ruleString.split(".").join(" ").replaceAll("@", ".");
     this.__init();
   }
 
   void __init() {
     List<String> rules = this.ruleString.split(".");
     rules.forEach((rule) {
-      int ruleType = RuleType.getRuleType(rule);
-      print(rule);
-      print(ruleType);
+      this.ruleList.add(RuleItem(rule).rule);
     });
+    this.rule = this.ruleList.join(" ");
+  }
+
+  String get() {
+    return this.rule;
   }
 }
 
 class RuleItem {
-  String text;
-  String name;
+  String text = '';
+  String tag = '';
+  String rule = '';
   int type = RuleType.tag;
-  int child;
-  Map<String, dynamic> prop;
+  String prop;
+
+  RuleItem(String rule) {
+    this.text = rule;
+    this.__init();
+  }
+
+  void __init() {
+    this.type = RuleType.getRuleType(this.text);
+    if (this.type != 0) {
+      this.tag = (new RegExp(RuleType.regMap[this.type])).firstMatch(this.text).group(1);
+      this.rule = RuleType.prefixMap[this.type] + this.tag;
+    }
+    if (RuleType.hasProp(this.text)) {
+      this.prop = (new RegExp(RuleType.regMap[RuleType.prop])).firstMatch(this.text).group(1);
+      this.rule += "[" + this.prop + "]";
+    }
+  }
 }
 
 class RuleType {
@@ -29,23 +51,34 @@ class RuleType {
   static const tag = 1;
   static const cls = 2;
   static const id = 4;
-  static const child = 8;
-  static const prop = 16;
+  static const prop = 8;
+  static const Map<int, String> regMap = {
+    RuleType.em: "",
+    RuleType.tag: r"^(\w+)",
+    RuleType.cls: r"^\@(\w+)",
+    RuleType.id: r"^\#(\w+)",
+    RuleType.prop: r'\[(.+)?\]$',
+  };
+
+  static const Map<int, String> prefixMap = {
+    RuleType.em: "",
+    RuleType.tag: "",
+    RuleType.cls: ".",
+    RuleType.id: "#",
+  };
 
   static int getRuleType(String str) {
-    int type = 0;
-    if (RegExp(r"^\@\w+").hasMatch(str)) {
-      type += RuleType.cls;
-    } else if (RegExp(r"^\#\w+").hasMatch(str)) {
-      type += RuleType.id;
-    } else if (RegExp(r"^\w+").hasMatch(str)) {
-      type += RuleType.tag;
+    if (RegExp(RuleType.regMap[RuleType.tag]).hasMatch(str)) {
+      return RuleType.tag;
+    } else if (RegExp(RuleType.regMap[RuleType.cls]).hasMatch(str)) {
+      return RuleType.cls;
+    } else if (RegExp(RuleType.regMap[RuleType.id]).hasMatch(str)) {
+      return RuleType.id;
     }
-    if (RegExp(r"\[\w+\=\w+\]$").hasMatch(str)) {
-      type += RuleType.prop;
-    } else if (RegExp(r"\[\d+\]$").hasMatch(str)) {
-      type += RuleType.child;
-    }
-    return type;
+    return RuleType.em;
+  }
+
+  static bool hasProp(String str) {
+    return RegExp(RuleType.regMap[RuleType.prop]).hasMatch(str);
   }
 }
