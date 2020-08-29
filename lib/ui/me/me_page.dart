@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_books/res/colors.dart';
-import 'package:flutter_books/res/dimens.dart';
-import 'package:flutter_books/ui/me/about_panda_page.dart';
+import 'package:zyuedu/res/colors.dart';
+import 'package:zyuedu/res/dimens.dart';
+import 'package:zyuedu/ui/me/about_panda_page.dart';
 
 class MePage extends StatefulWidget {
   @override

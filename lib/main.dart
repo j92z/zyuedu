@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_books/res/colors.dart';
-import 'package:flutter_books/ui/splash/splash_page.dart';
+import 'package:zyuedu/res/colors.dart';
+import 'package:zyuedu/ui/splash/splash_page.dart';
 
 void main() {
   runApp(MyApp());

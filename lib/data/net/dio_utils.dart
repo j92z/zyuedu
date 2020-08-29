@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:flutter_books/data/model/sources/struct.dart';
+import 'package:zyuedu/data/model/sources/search_source.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 
@@ -51,8 +51,6 @@ class DioUtils {
       options: _checkOptions(method, options),
       cancelToken: cancelToken,
     );
-    // print(response.data.runtimeType.toString());
-    // _printHttpLog(response.data);
     if (response.statusCode == 200) {
       try {
         if (response.data is Map) {
@@ -74,7 +72,9 @@ class DioUtils {
             _dataMap["data"] = response.data;
             return _dataMap;
         } else {
-          SourcesStruct(response.data);
+          Map<String, dynamic> _dataMap = Map();
+          _dataMap["data"] = SearchSource(response.data);
+          return _dataMap;
           // Map<String, dynamic> _dataMap = Map();
           // _dataMap["data"] = response.data;
           // return _dataMap;

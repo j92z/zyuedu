@@ -1,17 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_books/data/model/response/book_info_resp.dart';
-import 'package:flutter_books/data/repository/repository.dart';
-import 'package:flutter_books/db/db_helper.dart';
-import 'package:flutter_books/event/event_bus.dart';
-import 'package:flutter_books/res/colors.dart';
-import 'package:flutter_books/res/dimens.dart';
-import 'package:flutter_books/ui/details/book_chapters_content_page.dart';
-import 'package:flutter_books/ui/details/book_chapters_page.dart';
-import 'package:flutter_books/util/utils.dart';
-import 'package:flutter_books/widget/load_view.dart';
-import 'package:flutter_books/widget/static_rating_bar.dart';
+import 'package:zyuedu/data/model/response/book_info_resp.dart';
+import 'package:zyuedu/data/repository/repository.dart';
+import 'package:zyuedu/db/db_helper.dart';
+import 'package:zyuedu/event/event_bus.dart';
+import 'package:zyuedu/res/colors.dart';
+import 'package:zyuedu/res/dimens.dart';
+import 'package:zyuedu/ui/details/book_chapters_content_page.dart';
+import 'package:zyuedu/ui/details/book_chapters_page.dart';
+import 'package:zyuedu/util/utils.dart';
+import 'package:zyuedu/widget/load_view.dart';
+import 'package:zyuedu/widget/static_rating_bar.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 ///@author longshaohua

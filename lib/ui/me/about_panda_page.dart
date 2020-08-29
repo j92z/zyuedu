@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_books/res/dimens.dart';
-import 'package:flutter_books/ui/home/app_home.dart';
+import 'package:zyuedu/res/dimens.dart';
+import 'package:zyuedu/ui/home/app_home.dart';
 
 ///@author longshaohua
 
@@ -10,7 +10,7 @@ class AboutPandaPage extends StatefulWidget {
 }
 
 class _AboutPandaPageState extends State<StatefulWidget> {
-  final url = 'https://github.com/q805699513/flutter_books';
+  final url = 'https://github.com/q805699513/zyuedu';
 
   @override
   Widget build(BuildContext context) {

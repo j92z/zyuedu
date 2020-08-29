@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter_books/data/model/request/book_chapters_req.dart';
-import 'package:flutter_books/data/net/dio_utils.dart';
+import 'package:zyuedu/data/model/request/book_chapters_req.dart';
+import 'package:zyuedu/data/net/dio_utils.dart';
 
 class Repository {
   ///获取首页小说列表

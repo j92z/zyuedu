@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_books/db/db_helper.dart';
-import 'package:flutter_books/event/event_bus.dart';
-import 'package:flutter_books/res/colors.dart';
-import 'package:flutter_books/res/dimens.dart';
-import 'package:flutter_books/ui/details/book_chapters_content_page.dart';
-import 'package:flutter_books/ui/search/book_search_page.dart';
-import 'package:flutter_books/util/utils.dart';
+import 'package:zyuedu/db/db_helper.dart';
+import 'package:zyuedu/event/event_bus.dart';
+import 'package:zyuedu/res/colors.dart';
+import 'package:zyuedu/res/dimens.dart';
+import 'package:zyuedu/ui/details/book_chapters_content_page.dart';
+import 'package:zyuedu/ui/search/book_search_page.dart';
+import 'package:zyuedu/util/utils.dart';
 
 ///@author longshaohua
 ///书架页面

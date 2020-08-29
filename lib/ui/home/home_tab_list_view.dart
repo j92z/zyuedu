@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_books/data/model/request/categories_req.dart';
-import 'package:flutter_books/data/model/response/categories_resp.dart';
-import 'package:flutter_books/data/repository/repository.dart';
-import 'package:flutter_books/res/colors.dart';
-import 'package:flutter_books/res/dimens.dart';
-import 'package:flutter_books/ui/details/book_info_page.dart';
-import 'package:flutter_books/util/utils.dart';
-import 'package:flutter_books/widget/load_view.dart';
+import 'package:zyuedu/data/model/request/categories_req.dart';
+import 'package:zyuedu/data/model/response/categories_resp.dart';
+import 'package:zyuedu/data/repository/repository.dart';
+import 'package:zyuedu/res/colors.dart';
+import 'package:zyuedu/res/dimens.dart';
+import 'package:zyuedu/ui/details/book_info_page.dart';
+import 'package:zyuedu/util/utils.dart';
+import 'package:zyuedu/widget/load_view.dart';
 import 'package:flutter_swiper/flutter_swiper.dart';
 
 ///@author longshaohua

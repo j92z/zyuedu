@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_books/data/model/request/genuine_source_req.dart';
-import 'package:flutter_books/data/model/response/book_chapters_resp.dart';
-import 'package:flutter_books/data/model/response/book_genuine_source_resp.dart';
-import 'package:flutter_books/data/repository/repository.dart';
-import 'package:flutter_books/res/colors.dart';
-import 'package:flutter_books/res/dimens.dart';
-import 'package:flutter_books/ui/details/book_chapters_content_page.dart';
+import 'package:zyuedu/data/model/request/genuine_source_req.dart';
+import 'package:zyuedu/data/model/response/book_chapters_resp.dart';
+import 'package:zyuedu/data/model/response/book_genuine_source_resp.dart';
+import 'package:zyuedu/data/repository/repository.dart';
+import 'package:zyuedu/res/colors.dart';
+import 'package:zyuedu/res/dimens.dart';
+import 'package:zyuedu/ui/details/book_chapters_content_page.dart';
 
 ///@author longshaohua
 ///小说目录章节页

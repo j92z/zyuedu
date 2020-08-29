@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_books/res/colors.dart';
-import 'package:flutter_books/ui/home/home_tab_list_view.dart';
-import 'package:flutter_books/ui/search/book_search_page.dart';
+import 'package:zyuedu/res/colors.dart';
+import 'package:zyuedu/ui/home/home_tab_list_view.dart';
+import 'package:zyuedu/ui/search/book_search_page.dart';
 
 ///@author longshaohua
 ///书城

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_books/ui/home/app_home.dart';
+import 'package:zyuedu/ui/home/app_home.dart';
 
 ///@author longshaohua
 /// 引导页

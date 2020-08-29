@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_books/res/colors.dart';
-import 'package:flutter_books/res/dimens.dart';
+import 'package:zyuedu/res/colors.dart';
+import 'package:zyuedu/res/dimens.dart';
 
 ///@author longshaohua
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_books/res/colors.dart';
+import 'package:zyuedu/res/colors.dart';
 
 class LoadingView extends StatefulWidget {
   @override

@@ -1,16 +1,16 @@
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_books/data/model/request/fuzzy_search_book_list_req.dart';
-import 'package:flutter_books/data/model/response/fuzzy_search_book_list_resp.dart';
-import 'package:flutter_books/data/net/dio_utils.dart';
-import 'package:flutter_books/data/repository/repository.dart';
-import 'package:flutter_books/data/sources/stuct.dart';
-import 'package:flutter_books/res/colors.dart';
-import 'package:flutter_books/res/dimens.dart';
-import 'package:flutter_books/ui/details/book_info_page.dart';
-import 'package:flutter_books/util/utils.dart';
-import 'package:flutter_books/widget/load_view.dart';
+import 'package:zyuedu/data/model/request/fuzzy_search_book_list_req.dart';
+import 'package:zyuedu/data/model/response/fuzzy_search_book_list_resp.dart';
+import 'package:zyuedu/data/net/dio_utils.dart';
+import 'package:zyuedu/data/repository/repository.dart';
+import 'package:zyuedu/data/sources/stuct.dart';
+import 'package:zyuedu/res/colors.dart';
+import 'package:zyuedu/res/dimens.dart';
+import 'package:zyuedu/ui/details/book_info_page.dart';
+import 'package:zyuedu/util/utils.dart';
+import 'package:zyuedu/widget/load_view.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class BookSearchPage extends StatefulWidget {
