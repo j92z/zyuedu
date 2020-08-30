@@ -1,17 +1,11 @@
-
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:zyuedu/data/model/request/fuzzy_search_book_list_req.dart';
-import 'package:zyuedu/data/model/response/fuzzy_search_book_list_resp.dart';
-import 'package:zyuedu/data/net/dio_utils.dart';
-import 'package:zyuedu/data/repository/repository.dart';
-import 'package:zyuedu/data/sources/stuct.dart';
+import 'package:zyuedu/data/model/sources/search_source.dart';
 import 'package:zyuedu/res/colors.dart';
 import 'package:zyuedu/res/dimens.dart';
-import 'package:zyuedu/ui/details/book_info_page.dart';
-import 'package:zyuedu/util/utils.dart';
 import 'package:zyuedu/widget/load_view.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+
+import 'book_search_item.dart';
 
 class BookSearchPage extends StatefulWidget {
   @override
@@ -20,7 +14,7 @@ class BookSearchPage extends StatefulWidget {
 
 class BookSearchPageState extends State<BookSearchPage> {
   LoadStatus _loadStatus = LoadStatus.SUCCESS;
-  List<FuzzySearchList> _list = [];
+  List<SearchItem> _list = [];
   TextEditingController _controller = TextEditingController();
 
   @override
@@ -47,31 +41,32 @@ class BookSearchPageState extends State<BookSearchPage> {
     setState(() {
       _loadStatus = LoadStatus.LOADING;
     });
-
-    FormData data = new FormData.fromMap({
-      "searchkey": text
+    await SearchSource.fromKey(text)
+        .setExactQuery(true)
+        .getAsyncInfo()
+        .then((item) {
+          setState(() {
+            _loadStatus = LoadStatus.SUCCESS;
+            _list = item.searchList;
+          });
     });
-    Map<String, dynamic> query = {};
-    await Sources()
-        .search(query, data, Method.post)
-        .then((value) => print(value));
 
-    FuzzySearchReq categoriesReq = FuzzySearchReq(text);
-    await Repository()
-        .getFuzzySearchBookList(categoriesReq.toJson())
-        .then((json) {
-      var fuzzySearchResp = FuzzySearchResp.fromJson(json);
-      print(fuzzySearchResp);
-      if (fuzzySearchResp != null && fuzzySearchResp.books != null) {
-        setState(() {
-          _loadStatus = LoadStatus.SUCCESS;
-          _list = fuzzySearchResp.books;
-        });
-      }
-    }).catchError((e) {
-      print("2-------------------");
-      print(e.toString());
-    });
+    // FuzzySearchReq categoriesReq = FuzzySearchReq(text);
+    // await Repository()
+    //     .getFuzzySearchBookList(categoriesReq.toJson())
+    //     .then((json) {
+    //   var fuzzySearchResp = FuzzySearchResp.fromJson(json);
+    //   print(fuzzySearchResp);
+    //   if (fuzzySearchResp != null && fuzzySearchResp.books != null) {
+    //     setState(() {
+    //       _loadStatus = LoadStatus.SUCCESS;
+    //       // _list = fuzzySearchResp.books;
+    //     });
+    //   }
+    // }).catchError((e) {
+    //   print("2-------------------");
+    //   print(e.toString());
+    // });
   }
 
   Widget titleView() {
@@ -153,94 +148,12 @@ class BookSearchPageState extends State<BookSearchPage> {
       return LoadingView();
     } else {
       return ListView.builder(
-        itemBuilder: (context, index) => _buildListViewItem(index),
+        itemBuilder: (context, index) => BookSearchItem(_list[index].url),
         padding:
             EdgeInsets.fromLTRB(Dimens.leftMargin, 0, Dimens.leftMargin, 0),
         itemCount: _list.length,
       );
     }
-  }
-
-  Widget _buildListViewItem(int position) {
-    String imageUrl = Utils.convertImageUrl(_list[position].cover);
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          new MaterialPageRoute(
-              builder: (context) => BookInfoPage(_list[position].id, false)),
-        );
-      },
-      child: Container(
-        padding: EdgeInsets.fromLTRB(0, 12, 0, 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Image.network(
-              imageUrl,
-              height: 99,
-              width: 77,
-              fit: BoxFit.cover,
-            ),
-            SizedBox(
-              width: 12,
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    _list[position].title,
-                    style: TextStyle(color: MyColors.textBlack3, fontSize: 16),
-                  ),
-                  SizedBox(height: 4),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(
-                          _list[position].author,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: MyColors.textBlack6, fontSize: 14),
-                        ),
-                      ),
-                      MaterialButton(
-                        color: MyColors.textPrimaryColor,
-                        onPressed: null,
-                        minWidth: 10,
-                        height: 32,
-                        child: Text(
-                          "阅读",
-                          style: TextStyle(
-                              color: MyColors.white,
-                              fontSize: Dimens.textSizeL),
-                        ),
-                      )
-                    ],
-                  ),
-                  SizedBox(
-                    height: 5,
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      tagView(_list[position].cat),
-                      SizedBox(
-                        width: 6,
-                      ),
-                      tagView(getWordCount(_list[position].wordCount)),
-                    ],
-                  ),
-                ],
-              ),
-            )
-          ],
-        ),
-      ),
-    );
   }
 
   Widget tagView(String tag) {

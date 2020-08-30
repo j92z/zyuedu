@@ -73,7 +73,7 @@ class DioUtils {
             return _dataMap;
         } else {
           Map<String, dynamic> _dataMap = Map();
-          _dataMap["data"] = SearchSource(response.data);
+          _dataMap["data"] = response.data;
           return _dataMap;
           // Map<String, dynamic> _dataMap = Map();
           // _dataMap["data"] = response.data;

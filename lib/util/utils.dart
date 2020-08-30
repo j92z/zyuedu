@@ -4,4 +4,8 @@
   static String convertImageUrl(String imageUrl) {
     return imageUrl.replaceAll("%2F", "/").replaceAll("%3A", ":").substring(7);
   }
+
+  static String cleanLineBreak(String str) {
+    return str.replaceAll(new RegExp(r"[\r\n]"), "");
+  }
 }

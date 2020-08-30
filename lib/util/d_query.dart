@@ -4,7 +4,7 @@ class DQuery {
   dynamic doc;
 
   DQuery(dynamic doc) {
-    if (doc is List<Element> || doc is Element || doc is Document || doc is List) {
+    if (doc is List<Element> || doc is Element || doc is Document || doc is List || doc is String) {
       this.doc = doc;
     } else {
       this.doc = null;
@@ -162,7 +162,7 @@ class SelectorProp {
   static const Map<int, String> regMap = {
     SelectorProp.em: "",
     SelectorProp.child: r'\[(\d+)?\]',
-    SelectorProp.prop: r'\[(\w+)\=([\"\w]+)?\]',
+    SelectorProp.prop: r'\[(\w+)\=([\"\w\:]+)?\]',
   };
 
   static int get(String str) {
