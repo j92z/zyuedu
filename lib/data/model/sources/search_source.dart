@@ -72,17 +72,5 @@ class SearchItem {
     } else {
       this.cover = DefaultCover;
     }
-    this.getInfo();
   }
-
-  void getInfo() async {
-    await DetailSource.fromUrl(this.url)
-        .getAsyncInfo()
-        .then((item) {
-        this.cover = item.cover;
-        this.introduce = item.introduce;
-        this.author = item.author;
-    });
-  }
-
 }

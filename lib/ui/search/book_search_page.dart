@@ -38,11 +38,12 @@ class BookSearchPageState extends State<BookSearchPage> {
       Fluttertoast.showToast(msg: "请输入要搜索的书籍", fontSize: 14.0);
       return;
     }
+    FocusScope.of(context).requestFocus(FocusNode());
     setState(() {
       _loadStatus = LoadStatus.LOADING;
     });
     await SearchSource.fromKey(text)
-        .setExactQuery(true)
+        .setExactQuery(false)
         .getAsyncInfo()
         .then((item) {
           setState(() {
@@ -154,20 +155,6 @@ class BookSearchPageState extends State<BookSearchPage> {
         itemCount: _list.length,
       );
     }
-  }
-
-  Widget tagView(String tag) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(5, 0, 5, 0),
-      alignment: Alignment.center,
-      child: Text(
-        tag,
-        style: TextStyle(color: MyColors.textBlack9, fontSize: 11.5),
-      ),
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(3)),
-          border: Border.all(width: 0.5, color: MyColors.textBlack9)),
-    );
   }
 
   String getWordCount(int wordCount) {

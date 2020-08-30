@@ -1,10 +1,9 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:zyuedu/data/model/sources/detail_source.dart';
 import 'package:zyuedu/data/model/sources/search_source.dart';
 import 'package:zyuedu/res/colors.dart';
 import 'package:zyuedu/res/dimens.dart';
+import 'package:zyuedu/ui/details/book_info_page.dart';
 
 // ignore: must_be_immutable
 class BookSearchItem extends StatefulWidget {
@@ -20,6 +19,7 @@ class BookSearchItemState extends State<BookSearchItem> {
   String author = "";
   String cover = "";
   String introduce = "";
+  String category = "";
   @override
   void initState() {
     // TODO: implement initState
@@ -39,21 +39,22 @@ class BookSearchItemState extends State<BookSearchItem> {
         cover = item.cover;
         introduce = item.introduce;
         author = item.author;
+        category = item.category;
       });
     });
   }
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      // onTap: () {
-      //   Navigator.push(
-      //     context,
-      //     new MaterialPageRoute(
-      //         builder: (context) => BookInfoPage(_list[position].id, false)),
-      //   );
-      // },
+      onTap: () {
+        Navigator.push(
+          context,
+          new MaterialPageRoute(
+              builder: (context) => BookInfoPage("1111", false)),
+        );
+      },
       child: Container(
-        padding: EdgeInsets.fromLTRB(0, 12, 0, 12),
+        padding: EdgeInsets.fromLTRB(0, 5, 0, 5),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -75,6 +76,12 @@ class BookSearchItemState extends State<BookSearchItem> {
                     style: TextStyle(color: MyColors.textBlack3, fontSize: 16),
                   ),
                   SizedBox(height: 4),
+                  Text(
+                    this.introduce,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: MyColors.textBlack3, fontSize: 12),
+                  ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
@@ -98,23 +105,24 @@ class BookSearchItemState extends State<BookSearchItem> {
                               color: MyColors.white,
                               fontSize: Dimens.textSizeL),
                         ),
-                      )
+                      ),
+                      tagView(this.category)
                     ],
                   ),
                   SizedBox(
                     height: 5,
                   ),
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      // tagView(_list[position].cat),
-                      SizedBox(
-                        width: 6,
-                      ),
-                      // tagView(getWordCount(_list[position].wordCount)),
-                    ],
-                  ),
+                  // Row(
+                  //   mainAxisSize: MainAxisSize.max,
+                  //   crossAxisAlignment: CrossAxisAlignment.center,
+                  //   children: <Widget>[
+                  //     tagView(this.category),
+                  //     SizedBox(
+                  //       width: 6,
+                  //     ),
+                  //     // tagView(getWordCount(_list[position].wordCount)),
+                  //   ],
+                  // ),
                 ],
               ),
             )
@@ -123,5 +131,20 @@ class BookSearchItemState extends State<BookSearchItem> {
       ),
     );
   }
-  
+
+
+  Widget tagView(String tag) {
+    print(tag);
+    return Container(
+      padding: EdgeInsets.fromLTRB(5, 0, 5, 0),
+      alignment: Alignment.center,
+      child: Text(
+        tag,
+        style: TextStyle(color: MyColors.textBlack9, fontSize: 11.5),
+      ),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.all(Radius.circular(3)),
+          border: Border.all(width: 0.5, color: MyColors.textBlack9)),
+    );
+  }
 }
