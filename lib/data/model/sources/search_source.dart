@@ -44,15 +44,19 @@ class SearchSource {
   void genContent() {
     Document document = Document.html(this.html);
     String nameRuleString = "@grid.tr.@even[0].a:text";
-    var name = DQuery(document).find(nameRuleString).doc as List;
+    var name = DQuery(document).find(nameRuleString).doc;
     String urlRuleString = "@grid.tr.@even[0].a(href)";
-    var url = DQuery(document).find(urlRuleString).doc as List;
+    var url = DQuery(document).find(urlRuleString).doc;
     String authorRuleString = "@grid.tr.@even[1]:text";
-    var author = DQuery(document).find(authorRuleString).doc as List;
-    int resultLen = name.length;
-    for (int i = 0; i < resultLen; i++) {
-      if (this.exactQuery == null || (this.exactQuery && name[i] == this.searchKey) || !this.exactQuery) {
-        this.searchList.add(SearchItem(name[i], url[i], author: author[i]));
+    var author = DQuery(document).find(authorRuleString).doc;
+    if (!(name is List)) {
+      this.searchList.add(SearchItem(name, url, author: author));
+    } else {
+      int resultLen = name != null ? name.length : 0;
+      for (int i = 0; i < resultLen; i++) {
+        if (this.exactQuery == null || (this.exactQuery && name[i] == this.searchKey) || !this.exactQuery) {
+          this.searchList.add(SearchItem(name[i], url[i], author: author[i]));
+        }
       }
     }
   }
@@ -63,12 +67,12 @@ const DefaultCover = "http://www.xbiquge.la/files/article/image/15/15021/15021s.
 class SearchItem {
   String name;
   String url;
-  String author;
+  String author = "";
   String cover;
-  String introduce;
+  String introduce = "";
   SearchItem(this.name, this.url, {this.author, this.cover, this.introduce}) {
     if (this.cover != null) {
-      this.cover = Utils.convertImageUrl(this.cover);
+      this.cover = this.cover;
     } else {
       this.cover = DefaultCover;
     }

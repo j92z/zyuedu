@@ -34,6 +34,7 @@ class BookSearchPageState extends State<BookSearchPage> {
   }
 
   void getData(String text) async {
+    var a = "剑来";
     if (text.isEmpty) {
       Fluttertoast.showToast(msg: "请输入要搜索的书籍", fontSize: 14.0);
       return;
@@ -43,7 +44,7 @@ class BookSearchPageState extends State<BookSearchPage> {
       _loadStatus = LoadStatus.LOADING;
     });
     await SearchSource.fromKey(text)
-        .setExactQuery(false)
+        .setExactQuery(true)
         .getAsyncInfo()
         .then((item) {
           setState(() {
@@ -149,7 +150,7 @@ class BookSearchPageState extends State<BookSearchPage> {
       return LoadingView();
     } else {
       return ListView.builder(
-        itemBuilder: (context, index) => BookSearchItem(_list[index].url),
+        itemBuilder: (context, index) => BookSearchItem(_list[index]),
         padding:
             EdgeInsets.fromLTRB(Dimens.leftMargin, 0, Dimens.leftMargin, 0),
         itemCount: _list.length,

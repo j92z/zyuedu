@@ -3,19 +3,17 @@ import 'package:zyuedu/data/model/sources/detail_source.dart';
 import 'package:zyuedu/data/model/sources/search_source.dart';
 import 'package:zyuedu/res/colors.dart';
 import 'package:zyuedu/res/dimens.dart';
-import 'package:zyuedu/ui/details/book_info_page.dart';
+import 'package:zyuedu/ui/details/book_info_page_bak.dart';
 
 // ignore: must_be_immutable
 class BookSearchItem extends StatefulWidget {
-  final url;
-  BookSearchItem(this.url, {Key key}) : super(key: key);
+  SearchItem source;
+  BookSearchItem(this.source, {Key key}) : super(key: key);
   @override
   State<StatefulWidget> createState() => BookSearchItemState();
 }
 
 class BookSearchItemState extends State<BookSearchItem> {
-  String name = "";
-  String url = "";
   String author = "";
   String cover = "";
   String introduce = "";
@@ -24,18 +22,19 @@ class BookSearchItemState extends State<BookSearchItem> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    setState(() {
-      url = widget.url;
-    });
+    if (widget.source.author == "") {
+
+    }
+    this.author = widget.source.author != null ? widget.source.author : "";
+    this.introduce = widget.source.introduce != null ? widget.source.introduce : "";
     this.asyncDetailInfo();
   }
 
   void asyncDetailInfo() async {
-    await DetailSource.fromUrl(widget.url)
+    await DetailSource.fromUrl(widget.source.url)
         .getAsyncInfo()
         .then((item) {
       setState(() {
-        name = item.name;
         cover = item.cover;
         introduce = item.introduce;
         author = item.author;
@@ -50,16 +49,16 @@ class BookSearchItemState extends State<BookSearchItem> {
         Navigator.push(
           context,
           new MaterialPageRoute(
-              builder: (context) => BookInfoPage("1111", false)),
+              builder: (context) => BookInfoPage(widget.source.url, false)),
         );
       },
       child: Container(
-        padding: EdgeInsets.fromLTRB(0, 5, 0, 5),
+        padding: EdgeInsets.fromLTRB(0, 5, 0, 0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            this.cover == "" ? SizedBox() : Image.network(
-              this.cover,
+            Image.network(
+              this.cover == "" ? widget.source.cover : this.cover,
               height: 99,
               width: 77,
               fit: BoxFit.cover,
@@ -72,21 +71,25 @@ class BookSearchItemState extends State<BookSearchItem> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    this.name,
+                    widget.source.name,
                     style: TextStyle(color: MyColors.textBlack3, fontSize: 16),
                   ),
                   SizedBox(height: 4),
-                  Text(
-                    this.introduce,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: MyColors.textBlack3, fontSize: 12),
+                  SizedBox(
+                    height: 54,
+                    child:Text(
+                      this.introduce,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: MyColors.textBlack3, fontSize: 12),
+                    ),
                   ),
+
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Expanded(
-                        child: Text(
+                        child: this.author == ""  ? SizedBox() : Text(
                           this.author,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -109,20 +112,6 @@ class BookSearchItemState extends State<BookSearchItem> {
                       tagView(this.category)
                     ],
                   ),
-                  SizedBox(
-                    height: 5,
-                  ),
-                  // Row(
-                  //   mainAxisSize: MainAxisSize.max,
-                  //   crossAxisAlignment: CrossAxisAlignment.center,
-                  //   children: <Widget>[
-                  //     tagView(this.category),
-                  //     SizedBox(
-                  //       width: 6,
-                  //     ),
-                  //     // tagView(getWordCount(_list[position].wordCount)),
-                  //   ],
-                  // ),
                 ],
               ),
             )
@@ -134,8 +123,7 @@ class BookSearchItemState extends State<BookSearchItem> {
 
 
   Widget tagView(String tag) {
-    print(tag);
-    return Container(
+    return tag == "" ? SizedBox() : Container(
       padding: EdgeInsets.fromLTRB(5, 0, 5, 0),
       alignment: Alignment.center,
       child: Text(
