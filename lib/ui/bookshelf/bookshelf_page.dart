@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:zyuedu/db/db_helper.dart';
+import 'package:zyuedu/data/model/sources/detail_source.dart';
+import 'package:zyuedu/db/db_helper_bak.dart';
 import 'package:zyuedu/event/event_bus.dart';
 import 'package:zyuedu/res/colors.dart';
 import 'package:zyuedu/res/dimens.dart';
-import 'package:zyuedu/ui/details/book_chapters_content_page.dart';
+import 'package:zyuedu/ui/bookshelf/book_item.dart';
+import 'package:zyuedu/ui/details/book_chapters_content_page_bak.dart';
 import 'package:zyuedu/ui/search/book_search_page.dart';
 import 'package:zyuedu/util/utils.dart';
 
@@ -19,7 +21,7 @@ class BookshelfPage extends StatefulWidget {
 
 class BookshelfPageState extends State<BookshelfPage> {
   var _dbHelper = DbHelper();
-  List<BookshelfBean> _listBean = [];
+  List<BookItem> _listBean = [];
   StreamSubscription booksSubscription;
   final String _emptyTitle = "添加书籍";
 
@@ -31,6 +33,7 @@ class BookshelfPageState extends State<BookshelfPage> {
       getDbData();
     });
     getDbData();
+    print(_listBean.length);
   }
 
   @override
@@ -44,21 +47,22 @@ class BookshelfPageState extends State<BookshelfPage> {
               child: SingleChildScrollView(
                 child: Column(
                   children: <Widget>[
-                    Container(
-                      width: double.infinity,
-                      margin: EdgeInsets.fromLTRB(
-                          Dimens.leftMargin, 0, Dimens.rightMargin, 20),
-                      padding: EdgeInsets.fromLTRB(18, 10, 18, 10),
-                      decoration: BoxDecoration(
-                          color: Color(0XFFEBF9F6),
-                          borderRadius: BorderRadius.all(Radius.circular(100))),
-                      child: Text(
-                        "【Panda看书】全网小说不限时免费观看",
-                        style: TextStyle(
-                            color: MyColors.textBlack6,
-                            fontSize: Dimens.textSizeL),
-                      ),
-                    ),
+                    // Container(
+                    //   width: double.infinity,
+                    //   margin: EdgeInsets.fromLTRB(
+                    //       Dimens.leftMargin, 0, Dimens.rightMargin, 20),
+                    //   padding: EdgeInsets.fromLTRB(18, 10, 18, 10),
+                    //   decoration: BoxDecoration(
+                    //       color: Color(0XFFEBF9F6),
+                    //       borderRadius: BorderRadius.all(Radius.circular(100))),
+                    //   child: Text(
+                    //     "【Panda看书】全网小说不限时免费观看",
+                    //     style: TextStyle(
+                    //         color: MyColors.textBlack6,
+                    //         fontSize: Dimens.textSizeL),
+                    //   ),
+                    // ),
+                    SizedBox(height: 10,),
                     GridView.builder(
                       padding: EdgeInsets.fromLTRB(12, 0, 12, 0),
                       physics: NeverScrollableScrollPhysics(),
@@ -83,6 +87,7 @@ class BookshelfPageState extends State<BookshelfPage> {
   }
 
   Widget itemView(int index) {
+    print(index);
     String readProgress = _listBean[index].readProgress;
     if (readProgress == "0") {
       readProgress = "未读";
@@ -91,7 +96,7 @@ class BookshelfPageState extends State<BookshelfPage> {
     }
 
     bool addBookshelfItem = false;
-    if (_listBean[index].title == _emptyTitle) {
+    if (_listBean[index].name == _emptyTitle) {
       addBookshelfItem = true;
       readProgress = "";
     }
@@ -122,7 +127,7 @@ class BookshelfPageState extends State<BookshelfPage> {
                     fit: BoxFit.cover,
                   )
                 : Image.network(
-                    Utils.convertImageUrl(_listBean[index].image),
+                    Utils.convertImageUrl(_listBean[index].cover),
                     height: 121,
                     width: 92,
                     fit: BoxFit.cover,
@@ -139,15 +144,16 @@ class BookshelfPageState extends State<BookshelfPage> {
                   MaterialPageRoute(builder: (context) => BookSearchPage()),
                 );
               } else {
+                DetailSource source = DetailSource.fromUrl(_listBean[index].url);
                 Navigator.push(context, MaterialPageRoute(builder: (context) {
                   return BookContentPage(
-                      _listBean[index].bookUrl,
+                      _listBean[index].url,
                       _listBean[index].bookId,
-                      _listBean[index].image,
+                      _listBean[index].cover,
                       _listBean[index].chaptersIndex,
-                      _listBean[index].isReversed == 1,
-                      _listBean[index].title,
-                      _listBean[index].offset);
+                      _listBean[index].name,
+                      _listBean[index].offset,
+                      source);
                 }));
               }
             },
@@ -159,7 +165,7 @@ class BookshelfPageState extends State<BookshelfPage> {
         SizedBox(
           width: 96,
           child: Text(
-            _listBean[index].title,
+            _listBean[index].name,
             maxLines: 2,
             style: TextStyle(
               fontSize: Dimens.textSizeM,
@@ -273,7 +279,7 @@ class BookshelfPageState extends State<BookshelfPage> {
     await _dbHelper.getTotalList().then((list) {
       _listBean.clear();
       list.reversed.forEach((item) {
-        BookshelfBean todoItem = BookshelfBean.fromMap(item);
+        BookItem todoItem = BookItem.fromMap(item);
         setState(() {
           _listBean.add(todoItem);
         });
@@ -284,8 +290,7 @@ class BookshelfPageState extends State<BookshelfPage> {
 
   /// add 样式 item
   void setAddItem() {
-    BookshelfBean todoItem =
-        BookshelfBean(_emptyTitle, null, "", "", "", 0, 0, 0);
+    BookItem todoItem = BookItem(_emptyTitle, "", "", "", "", 0, 0);
     setState(() {
       _listBean.add(todoItem);
     });

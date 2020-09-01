@@ -1,4 +1,4 @@
-package com.lshapp.flutterbooks;
+package com.j92z.zyuedu;
 
 import static android.Manifest.permission.CAMERA;
 

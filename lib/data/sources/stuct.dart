@@ -21,4 +21,14 @@ class Sources {
       data: data == null ? FormData(): data,
     );
   }
+
+  ///获取小说章节
+  Future<Map> chapter(url, {queryParameters, data, method}) async {
+    return await DioUtils().request<String>(
+      url,
+      queryParameters: queryParameters == null ? Map<String, dynamic>() : queryParameters,
+      method: method == null ? Method.get : method,
+      data: data == null ? FormData(): data,
+    );
+  }
 }

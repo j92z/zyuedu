@@ -83,6 +83,10 @@ class DQuery {
       if (attrType == SelectorAttr.met) {
         if (attrStr == "text") {
           return (document as Element).text;
+        } else if (attrStr == "outerHtml") {
+          return (document as Element).outerHtml;
+        } else if (attrStr == "innerHtml") {
+          return (document as Element).innerHtml;
         }
       } else if (attrType == SelectorAttr.attr) {
         return (document as Element).attributes[attrStr];

@@ -7,7 +7,7 @@ import 'package:zyuedu/util/utils.dart';
 
 class DetailSource {
   String html;
-  String url;
+  Uri uri;
   String name;
   String author;
   String cover;
@@ -15,7 +15,9 @@ class DetailSource {
   String category;
   List<ChapterItem> chapter = [];
 
-  DetailSource.fromUrl(this.url);
+  DetailSource.fromUrl(String url) {
+    this.uri = Uri.parse(url);
+  }
 
   DetailSource.fromHtml(this.html) {
     this.html = Utils.cleanLineBreak(this.html);
@@ -24,7 +26,7 @@ class DetailSource {
 
   Future<DetailSource> getAsyncInfo() async {
     return await Sources()
-        .detail(this.url)
+        .detail(this.uri.toString())
         .then((json) {
       this.html = Utils.cleanLineBreak(json['data']);
       this.genContent();
@@ -50,13 +52,17 @@ class DetailSource {
     var chapterUrl = DQuery(document).find(chapterUrlRuleString).doc as List;
     int chapterLen = chapterName.length;
     for (int i = 0; i < chapterLen; i++) {
-      this.chapter.add(ChapterItem(chapterName[i], chapterUrl[i]));
+      Uri chapterUri = Uri.parse(chapterUrl[i]);
+      if (chapterUri.host == "" || chapterUri.host == null) {
+        chapterUri = Uri.parse(this.uri.scheme + "://" + this.uri.host + chapterUri.path);
+      }
+      this.chapter.add(ChapterItem(chapterName[i], chapterUri));
     }
   }
 }
 
 class ChapterItem {
   String name;
-  String url;
-  ChapterItem(this.name, this.url);
+  Uri uri;
+  ChapterItem(this.name, this.uri);
 }
