@@ -42,7 +42,6 @@ class DbHelper {
 
   /// 添加书籍到书架
   Future<int> addBookshelfItem(BookItem item) async {
-    print("addBookshelfItem = ${item.bookId}");
     var dbClient = await db;
     int res = await dbClient.insert("$_tableName", item.toMap());
     return res;
@@ -64,7 +63,6 @@ class DbHelper {
     var dbClient = await db;
     int res =
         await dbClient.delete(_tableName, where: "bookId = ?", whereArgs: [id]);
-    print("deleteItem = $res");
     return res;
   }
 

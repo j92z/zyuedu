@@ -25,7 +25,6 @@ class SearchSource {
   }
 
   Future<SearchSource> getAsyncInfo() async {
-    var a = "剑来";
 
     FormData data = new FormData.fromMap({
       "searchkey": this.searchKey

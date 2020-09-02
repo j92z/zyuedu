@@ -12,7 +12,6 @@ class ChapterSource {
   ChapterSource(this.chapter);
 
   Future<ChapterSource> getAsyncInfo() async {
-    print(this.chapter.uri);
     return await Sources()
         .chapter(this.chapter.uri.toString())
         .then((json) {
