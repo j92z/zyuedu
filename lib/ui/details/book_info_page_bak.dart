@@ -142,7 +142,8 @@ class BookInfoPageState extends State<BookInfoPage>
         ),
         bodyChildView(
             _isAddBookshelf ? "已在书架" : "加入书架", MyColors.white, MyColors.detailPageButtonColor, (){
-            var bean = BookItem(
+              print(source.author);
+              var bean = BookItem(
               _bookName,
               source.author,
               _image,
@@ -150,6 +151,7 @@ class BookInfoPageState extends State<BookInfoPage>
               source.uri.toString(),
               0,
               0);
+            print('tttt');
             _dbHelper.addBookshelfItem(bean);
             this._bookshelfBean = bean;
             setState(() {
@@ -161,14 +163,14 @@ class BookInfoPageState extends State<BookInfoPage>
             ? (_bookshelfBean.readProgress == "0" ? "开始阅读" : "继续阅读")
             : "开始阅读", MyColors.detailPageButtonColor, MyColors.white, (){
             Navigator.push(context, MaterialPageRoute(builder: (context) {
+              var bookId = BookItem.createBookId(source.name, source.author);
               return BookContentPage(
-                  null,
                   widget.url,
+                  bookId,
                   _image,
                   0,
                   _bookName,
-                  0,
-                  source);
+                  0);
             }));
         }),
       ],
@@ -696,9 +698,13 @@ class BookInfoPageState extends State<BookInfoPage>
   }
 
   void getDbData() async {
+    print('qqqq');
+    print(source.name);
+    print(source.author);
     var bookId = BookItem.createBookId(source.name, source.author);
     print(bookId);
     var list = await _dbHelper.queryBooks(bookId);
+    print(list);
     if (list != null) {
       print("getDbData1");
       _bookshelfBean = list;

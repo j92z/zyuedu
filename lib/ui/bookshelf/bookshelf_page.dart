@@ -29,11 +29,9 @@ class BookshelfPageState extends State<BookshelfPage> {
   void initState() {
     super.initState();
     booksSubscription = eventBus.on<BooksEvent>().listen((event) {
-      print("");
       getDbData();
     });
     getDbData();
-    print(_listBean.length);
   }
 
   @override
@@ -87,7 +85,6 @@ class BookshelfPageState extends State<BookshelfPage> {
   }
 
   Widget itemView(int index) {
-    print(index);
     String readProgress = _listBean[index].readProgress;
     if (readProgress == "0") {
       readProgress = "未读";
@@ -100,7 +97,7 @@ class BookshelfPageState extends State<BookshelfPage> {
       addBookshelfItem = true;
       readProgress = "";
     }
-
+    print(_listBean[index].toMap().toString());
     var position = index == 0 ? 0 : index % 3;
     var axisAlignment;
     if (position == 0) {
@@ -127,7 +124,7 @@ class BookshelfPageState extends State<BookshelfPage> {
                     fit: BoxFit.cover,
                   )
                 : Image.network(
-                    Utils.convertImageUrl(_listBean[index].cover),
+                    _listBean[index].cover,
                     height: 121,
                     width: 92,
                     fit: BoxFit.cover,
@@ -144,7 +141,7 @@ class BookshelfPageState extends State<BookshelfPage> {
                   MaterialPageRoute(builder: (context) => BookSearchPage()),
                 );
               } else {
-                DetailSource source = DetailSource.fromUrl(_listBean[index].url);
+
                 Navigator.push(context, MaterialPageRoute(builder: (context) {
                   return BookContentPage(
                       _listBean[index].url,
@@ -152,8 +149,7 @@ class BookshelfPageState extends State<BookshelfPage> {
                       _listBean[index].cover,
                       _listBean[index].chaptersIndex,
                       _listBean[index].name,
-                      _listBean[index].offset,
-                      source);
+                      _listBean[index].offset);
                 }));
               }
             },

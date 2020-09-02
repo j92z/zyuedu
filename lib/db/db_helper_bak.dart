@@ -22,7 +22,6 @@ class DbHelper {
   _initDb() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, "books.db");
-    print(path);
     var db = await openDatabase(path, version: 1, onCreate: _onCreate);
     return db;
   }
@@ -32,13 +31,13 @@ class DbHelper {
     await db.execute("CREATE TABLE $_tableName("
         "id INTEGER PRIMARY KEY,"
         "name TEXT,"
+        "author TEXT,"
         "cover TEXT,"
         "readProgress TEXT,"
         "url TEXT,"
         "bookId TEXT,"
         "offset DOUBLE,"
         "chaptersIndex INTEGER)");
-    print("Created tables");
   }
 
   /// 添加书籍到书架

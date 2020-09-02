@@ -23,6 +23,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///@author longshaohua
 ///小说内容浏览页
 
+// ignore: must_be_immutable
 class BookContentPage extends StatefulWidget {
   /// 书籍章节内容 url
   String _bookUrl;
@@ -42,10 +43,8 @@ class BookContentPage extends StatefulWidget {
   /// 初次进页面 scrollview 滑动到上一次阅读的地方
   double _initOffset = 0;
 
-  DetailSource source;
-
   BookContentPage(this._bookUrl, this._bookId, this._bookImage, this._index,
-      this._bookName, this._initOffset, this.source);
+      this._bookName, this._initOffset);
 
   @override
   State<StatefulWidget> createState() {
@@ -72,15 +71,16 @@ class BookContentPageState extends State<BookContentPage>
   double _textSizeValue = 18;
   bool _isNighttime = false;
   bool _isAddBookshelf = false;
-  List<BookChaptersBean> _listBean = [];
+  List<ChapterItem> _listBean = [];
   String _title = "";
   double _offset = 0;
   ScrollController _controller;
+  DetailSource source;
+  BookItem bookItem;
 
   @override
   void initState() {
     super.initState();
-    _offset = this.widget._initOffset;
     _spGetTextSizeValue().then((value) {
       setState(() {
         _textSizeValue = value;
@@ -92,13 +92,8 @@ class BookContentPageState extends State<BookContentPage>
       });
     });
 
-    getChaptersListData1();
-    // setStemStyle();
-    // isAddBookshelf().then((isAdd) {
-    //   setState(() {
-    //     _isAddBookshelf = isAdd;
-    //   });
-    // });
+    getChaptersListData();
+    setStemStyle();
   }
 
   @override
@@ -121,8 +116,8 @@ class BookContentPageState extends State<BookContentPage>
               child: GestureDetector(
                 onTap: () {
                   setState(() {
-                    this.widget._index =
-                        _listBean.length - 1 - this.widget._index;
+                    bookItem.chaptersIndex =
+                        _listBean.length - 1 - bookItem.chaptersIndex;
                     _listBean = _listBean.reversed.toList();
                   });
                 },
@@ -153,7 +148,12 @@ class BookContentPageState extends State<BookContentPage>
             /// 章节目录 list
             Expanded(
               child: ListView.separated(
+                controller: new ScrollController(
+                    initialScrollOffset: (60.7 * (bookItem.chaptersIndex - 7 <= 0
+                        ? 0 : bookItem.chaptersIndex - 7)).toDouble(),
+                    keepScrollOffset: false),
                 itemCount: _listBean.length,
+
                 itemBuilder: (context, index) {
                   return itemView(index);
                 },
@@ -622,13 +622,10 @@ class BookContentPageState extends State<BookContentPage>
       child: InkWell(
         onTap: () {
           setState(() {
-            setState(() {
-              _loadStatus = LoadStatus.LOADING;
-              this.widget._initOffset = 0;
-              this.widget._index = index;
-              this.widget._bookUrl = _listBean[index].link;
-              getData();
-            });
+            _loadStatus = LoadStatus.LOADING;
+            bookItem.offset = 0;
+            bookItem.chaptersIndex = index;
+            this.getChapterContent(index);
           });
           Navigator.pop(context);
         },
@@ -648,22 +645,15 @@ class BookContentPageState extends State<BookContentPage>
               ),
               Expanded(
                 child: Text(
-                  _listBean[index].title,
+                  _listBean[index].name,
                   style: TextStyle(
                     fontSize: Dimens.textSizeM,
-                    color: this.widget._index == index
+                    color: bookItem.chaptersIndex == index
                         ? MyColors.textPrimaryColor
                         : MyColors.textBlack9,
                   ),
                 ),
               ),
-              _listBean[index].isVip
-                  ? Image.asset(
-                      "images/icon_chapters_vip.png",
-                      width: 16,
-                      height: 16,
-                    )
-                  : Container(),
             ],
           ),
         ),
@@ -694,35 +684,14 @@ class BookContentPageState extends State<BookContentPage>
   /// 添加到书架
   void addBookshelf() {
     double index = (this.widget._index * 100 / _listBean.length);
-    // if (this.widget._isReversed) {
-    //   index = 100 - index;
-    // }
     if (index < 0.1) {
       index = 0.1;
     }
-    // var bookshelfBean = BookshelfBean(
-    //   this.widget._bookName,
-    //   this.widget._bookImage,
-    //   index.toStringAsFixed(1),
-    //   this.widget._bookUrl,
-    //   this.widget._bookId,
-    //   _offset,
-    //   this.widget._isReversed ? 1 : 0,
-    //   this.widget._index,
-    // );
-    var bookshelfBean = BookItem(
-      this.widget._bookName,
-      this.widget._bookImage,
-      index.toStringAsFixed(1),
-      this.widget._bookUrl,
-      this.widget._bookId,
-      _offset,
-      this.widget._index,
-    );
+    bookItem.readProgress = index.toStringAsFixed(1);
     if (_isAddBookshelf) {
-      _dbHelper.updateBooks(bookshelfBean).then((i) {});
+      _dbHelper.updateBooks(bookItem).then((i) {});
     } else {
-      _dbHelper.addBookshelfItem(bookshelfBean);
+      _dbHelper.addBookshelfItem(bookItem);
     }
     eventBus.fire(new BooksEvent());
   }
@@ -762,50 +731,51 @@ class BookContentPageState extends State<BookContentPage>
     });
   }
 
-  //获取章节列表
   void getChaptersListData() async {
-    GenuineSourceReq genuineSourceReq =
-        GenuineSourceReq("summary", this.widget._bookId);
-    var entryPoint =
-        await Repository().getBookGenuineSource(genuineSourceReq.toJson());
-    BookGenuineSourceResp bookGenuineSourceResp =
-        BookGenuineSourceResp(entryPoint);
-    if (bookGenuineSourceResp.data != null &&
-        bookGenuineSourceResp.data.length > 0) {
-      await Repository()
-          .getBookChapters(bookGenuineSourceResp.data[0].id)
-          .then((json) {
-        BookChaptersResp bookChaptersResp = BookChaptersResp(json);
-        setState(() {
-          _listBean = bookChaptersResp.chapters;
-          // if (this.widget._isReversed) {
-          //   _listBean = _listBean.reversed.toList();
-          // }
-        });
-        if (this.widget._bookUrl == null || this.widget._bookUrl.length == 0) {
-          this.widget._bookUrl = _listBean[0].link;
-        }
-        getData();
-      }).catchError((e) {
-        //请求出错
-        print(e.toString());
-      });
-    }
+    var sourceItem = await DetailSource.fromUrl(widget._bookUrl).getAsyncInfo();
+    var bookInfo = await _dbHelper.queryBooks(
+        BookItem.createBookId(sourceItem.name, sourceItem.author));
+    setState(() {
+      source = sourceItem;
+      _listBean = sourceItem.chapter;
+      bookItem = bookInfo??BookItem(
+          sourceItem.name,
+          sourceItem.author,
+          sourceItem.cover,
+          "0",
+          sourceItem.uri.toString(),
+          0,
+          0);
+    });
+    this.getChapterContent(bookItem.chaptersIndex);
   }
 
-  void getChaptersListData1() async {
-    ChapterItem chapter = widget.source.chapter[0];
+  void getChapterContent(int index) async {
+    if (index == null ||index < 0) {
+      index = 0;
+    }
+    ChapterItem chapter = _listBean[index];
+    print(bookItem.offset);
+    print('off');
     await ChapterSource(chapter)
-      .getAsyncInfo()
-      .then((item) {
-       print(item);
-       setState(() {
-         _loadStatus = LoadStatus.SUCCESS;
+        .getAsyncInfo()
+        .then((item) {
+      setState(() {
+        _loadStatus = LoadStatus.SUCCESS;
+        ///部分小说文字排版有问题，需要特殊处理
+        _content = item.content;
+        _title = chapter.name;
+      });
+    });
+    this.setScrollController();
+  }
 
-         ///部分小说文字排版有问题，需要特殊处理
-         _content = item.content;
-         _title = chapter.name;
-       });
+  void setScrollController() {
+    _controller = new ScrollController(
+        initialScrollOffset: bookItem.offset, keepScrollOffset: false);
+    _controller.addListener(() {
+      print("offset = ${_controller.offset}");
+      bookItem.offset = _controller.offset;
     });
   }
 
@@ -817,7 +787,6 @@ class BookContentPageState extends State<BookContentPage>
   }
 
   /// 判断是否加入书架
-
   Future<bool> isAddBookshelf() async {
     var bookList = await _dbHelper.queryBooks(this.widget._bookId);
     if (bookList != null) {
@@ -852,7 +821,7 @@ class BookContentPageState extends State<BookContentPage>
   @override
   void onReload() {
     _loadStatus = LoadStatus.LOADING;
-    getData();
+    this.getChapterContent(bookItem.chaptersIndex);
   }
 
   @override
