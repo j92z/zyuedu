@@ -1,20 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:zyuedu/data/model/response/book_info_resp.dart';
 import 'package:zyuedu/data/model/sources/detail_source.dart';
-import 'package:zyuedu/data/repository/repository.dart';
 import 'package:zyuedu/db/db_helper_bak.dart';
 import 'package:zyuedu/event/event_bus.dart';
 import 'package:zyuedu/res/colors.dart';
 import 'package:zyuedu/res/dimens.dart';
 import 'package:zyuedu/ui/bookshelf/book_item.dart';
 import 'package:zyuedu/ui/details/book_chapters_content_page_bak.dart';
-import 'package:zyuedu/ui/details/book_chapters_page.dart';
-import 'package:zyuedu/util/utils.dart';
 import 'package:zyuedu/widget/load_view.dart';
-import 'package:zyuedu/widget/static_rating_bar.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 
 ///@author longshaohua
 ///详情页
@@ -32,7 +26,6 @@ class BookInfoPage extends StatefulWidget {
 class BookInfoPageState extends State<BookInfoPage>
     implements OnLoadReloadListener {
   LoadStatus _loadStatus = LoadStatus.LOADING;
-  // BookInfoResp _bookInfoResp;
   DetailSource source;
   ScrollController _controller = new ScrollController();
   Color _iconColor = Color.fromARGB(255, 255, 255, 255);
@@ -57,7 +50,6 @@ class BookInfoPageState extends State<BookInfoPage>
     });
     getData();
     _controller.addListener(() {
-      print(_controller.offset);
       //170
       if (_controller.offset <= 170) {
         setState(() {
@@ -111,20 +103,12 @@ class BookInfoPageState extends State<BookInfoPage>
         contentView(),
         titleView(),
 
-        Column(
-          // children: [
-          //   Container(
-          //     height: 14,
-          //     color: MyColors.dividerColor,
-          //   ),
-          // ],
-        ),
+        Column(), //for expanded
 
         Positioned(
           bottom: 0,
           right: 0,
           left: 0,
-          // top: 0,
           child: bottomView(),
         )
       ],
@@ -141,36 +125,13 @@ class BookInfoPageState extends State<BookInfoPage>
           color: MyColors.dividerColor,
         ),
         bodyChildView(
-            _isAddBookshelf ? "已在书架" : "加入书架", MyColors.white, MyColors.detailPageButtonColor, (){
-              print(source.author);
-              var bean = BookItem(
-              _bookName,
-              source.author,
-              _image,
-              "0",
-              source.uri.toString(),
-              0,
-              0);
-            print('tttt');
-            _dbHelper.addBookshelfItem(bean);
-            this._bookshelfBean = bean;
-            setState(() {
-              _isAddBookshelf = true;
-            });
-            eventBus.fire(new BooksEvent());
-        }),
+            _isAddBookshelf ? "已在书架" : "加入书架", MyColors.white, MyColors.detailPageButtonColor, this.updateBookShelf),
         bodyChildView(_isAddBookshelf
             ? (_bookshelfBean.readProgress == "0" ? "开始阅读" : "继续阅读")
             : "开始阅读", MyColors.detailPageButtonColor, MyColors.white, (){
             Navigator.push(context, MaterialPageRoute(builder: (context) {
               var bookId = BookItem.createBookId(source.name, source.author);
-              return BookContentPage(
-                  widget.url,
-                  bookId,
-                  _image,
-                  0,
-                  _bookName,
-                  0);
+              return BookContentPage(widget.url,bookId,_image,0,_bookName,0);
             }));
         }),
       ],
@@ -490,37 +451,6 @@ class BookInfoPageState extends State<BookInfoPage>
     return Expanded(
       flex: 1,
       child: new GestureDetector(
-        // onTap: () {
-        //   if (tap == 0) {
-        //     if (!_isAddBookshelf) {
-        //       var bean = BookshelfBean(
-        //         _bookName,
-        //         _image,
-        //         "0",
-        //         "",
-        //         this.widget._bookId,
-        //         0,
-        //         0,
-        //         0,
-        //       );
-        //       _dbHelper.addBookshelfItem(bean);
-        //       this._bookshelfBean = bean;
-        //       setState(() {
-        //         _isAddBookshelf = true;
-        //       });
-        //       eventBus.fire(new BooksEvent());
-        //     }
-        //   }
-        //   if (tap == 1) {
-        //     /// 章节目录页
-        //     Navigator.push(
-        //       context,
-        //       MaterialPageRoute(
-        //           builder: (content) =>
-        //               BookChaptersPage(this.widget._bookId, _image, _bookName)),
-        //     );
-        //   }
-        // },
         onTapDown: (detail) => _click(),
         child:  Container(
           decoration: BoxDecoration(
@@ -678,8 +608,21 @@ class BookInfoPageState extends State<BookInfoPage>
   //   return wordCount.toString() + "字";
   // }
 
+  void updateBookShelf() {
+    if (_isAddBookshelf) {
+      _dbHelper.deleteBooks(_bookshelfBean.bookId);
+    } else {
+      var bean = BookItem(_bookName,source.author,_image,"0",source.uri.toString(),0,0);
+      _dbHelper.addBookshelfItem(bean);
+      this._bookshelfBean = bean;
+    }
+    setState(() {
+      _isAddBookshelf = !_isAddBookshelf;
+    });
+    eventBus.fire(new BooksEvent());
+  }
+
   void getData() async {
-    print(widget.url);
     await DetailSource.fromUrl(widget.url)
       .getAsyncInfo()
       .then((item){
@@ -695,24 +638,18 @@ class BookInfoPageState extends State<BookInfoPage>
         _loadStatus = LoadStatus.FAILURE;
       });
     });
+    this.getDbData();
   }
 
   void getDbData() async {
-    print('qqqq');
-    print(source.name);
-    print(source.author);
     var bookId = BookItem.createBookId(source.name, source.author);
-    print(bookId);
     var list = await _dbHelper.queryBooks(bookId);
-    print(list);
     if (list != null) {
-      print("getDbData1");
       _bookshelfBean = list;
       setState(() {
         _isAddBookshelf = true;
       });
     } else {
-      print("getDbData2");
       setState(() {
         _isAddBookshelf = false;
       });
