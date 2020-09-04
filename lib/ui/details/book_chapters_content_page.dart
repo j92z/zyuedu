@@ -3,15 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:zyuedu/data/model/request/genuine_source_req.dart';
-import 'package:zyuedu/data/model/response/book_chapters_resp.dart';
-import 'package:zyuedu/data/model/response/book_content_resp.dart';
-import 'package:zyuedu/data/model/response/book_genuine_source_resp.dart';
-import 'package:zyuedu/data/repository/repository.dart';
+import 'package:zyuedu/data/model/sources/chapter_source.dart';
+import 'package:zyuedu/data/model/sources/detail_source.dart';
 import 'package:zyuedu/db/db_helper.dart';
 import 'package:zyuedu/event/event_bus.dart';
 import 'package:zyuedu/res/colors.dart';
 import 'package:zyuedu/res/dimens.dart';
+import 'package:zyuedu/ui/bookshelf/book_item.dart';
 import 'package:zyuedu/ui/details/book_info_page.dart';
 import 'package:zyuedu/widget/load_view.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -20,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///@author longshaohua
 ///小说内容浏览页
 
+// ignore: must_be_immutable
 class BookContentPage extends StatefulWidget {
   /// 书籍章节内容 url
   String _bookUrl;
@@ -27,23 +26,7 @@ class BookContentPage extends StatefulWidget {
   /// 书籍 id
   String _bookId;
 
-  /// 书籍图片
-  String _bookImage;
-
-  /// 保存到数据库里的书名
-  String _bookName;
-
-  /// 目录选择的 item 索引
-  int _index = 0;
-
-  /// 初次进页面 scrollview 滑动到上一次阅读的地方
-  double _initOffset = 0;
-
-  /// 章节是否倒序
-  bool _isReversed;
-
-  BookContentPage(this._bookUrl, this._bookId, this._bookImage, this._index,
-      this._isReversed, this._bookName, this._initOffset);
+  BookContentPage(this._bookUrl, this._bookId);
 
   @override
   State<StatefulWidget> createState() {
@@ -70,15 +53,18 @@ class BookContentPageState extends State<BookContentPage>
   double _textSizeValue = 18;
   bool _isNighttime = false;
   bool _isAddBookshelf = false;
-  List<BookChaptersBean> _listBean = [];
+  List<ChapterItem> _listBean = [];
   String _title = "";
   double _offset = 0;
   ScrollController _controller;
+  ScrollController _chapterMenuController;
+  DetailSource source;
+  BookItem bookItem;
+  double menuHeight = 53;
 
   @override
   void initState() {
     super.initState();
-    _offset = this.widget._initOffset;
     _spGetTextSizeValue().then((value) {
       setState(() {
         _textSizeValue = value;
@@ -92,11 +78,6 @@ class BookContentPageState extends State<BookContentPage>
 
     getChaptersListData();
     setStemStyle();
-    isAddBookshelf().then((isAdd) {
-      setState(() {
-        _isAddBookshelf = isAdd;
-      });
-    });
   }
 
   @override
@@ -119,9 +100,8 @@ class BookContentPageState extends State<BookContentPage>
               child: GestureDetector(
                 onTap: () {
                   setState(() {
-                    this.widget._isReversed = !this.widget._isReversed;
-                    this.widget._index =
-                        _listBean.length - 1 - this.widget._index;
+                    bookItem.chaptersIndex =
+                        _listBean.length - 1 - bookItem.chaptersIndex;
                     _listBean = _listBean.reversed.toList();
                   });
                 },
@@ -152,7 +132,9 @@ class BookContentPageState extends State<BookContentPage>
             /// 章节目录 list
             Expanded(
               child: ListView.separated(
+                controller: _chapterMenuController,
                 itemCount: _listBean.length,
+
                 itemBuilder: (context, index) {
                   return itemView(index);
                 },
@@ -229,7 +211,7 @@ class BookContentPageState extends State<BookContentPage>
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: <Widget>[
-                                MaterialButton(
+                                 MaterialButton(
                                   minWidth: 125,
                                   textColor: MyColors.textPrimaryColor,
                                   shape: RoundedRectangleBorder(
@@ -240,35 +222,16 @@ class BookContentPageState extends State<BookContentPage>
                                         width: 1),
                                   ),
                                   onPressed: () {
-                                    if (this.widget._isReversed) {
-                                      if (this.widget._index >=
-                                          _listBean.length - 1) {
-                                        Fluttertoast.showToast(
-                                            msg: "没有上一章了", fontSize: 14.0);
-                                      } else {
-                                        setState(() {
-                                          _loadStatus = LoadStatus.LOADING;
-                                        });
-                                        this.widget._initOffset = 0;
-                                        ++this.widget._index;
-                                        this.widget._bookUrl =
-                                            _listBean[this.widget._index].link;
-                                        getData();
-                                      }
+                                    if (bookItem.chaptersIndex == 0) {
+                                      Fluttertoast.showToast(
+                                          msg: "没有上一章了", fontSize: 14.0);
                                     } else {
-                                      if (this.widget._index == 0) {
-                                        Fluttertoast.showToast(
-                                            msg: "没有上一章了", fontSize: 14.0);
-                                      } else {
-                                        setState(() {
-                                          _loadStatus = LoadStatus.LOADING;
-                                        });
-                                        this.widget._initOffset = 0;
-                                        --this.widget._index;
-                                        this.widget._bookUrl =
-                                            _listBean[this.widget._index].link;
-                                        getData();
-                                      }
+                                      setState(() {
+                                        _loadStatus = LoadStatus.LOADING;
+                                      });
+                                      bookItem.offset = 0;
+                                      bookItem.chaptersIndex--;
+                                      this.getChapterContent(bookItem.chaptersIndex);
                                     }
                                   },
                                   child: Text("上一章"),
@@ -284,36 +247,16 @@ class BookContentPageState extends State<BookContentPage>
                                         width: 1),
                                   ),
                                   onPressed: () {
-                                    if (!this.widget._isReversed) {
-                                      if (this.widget._index >=
-                                          _listBean.length - 1) {
-                                        Fluttertoast.showToast(
-                                            msg: "没有下一章了", fontSize: 14.0);
-                                      } else {
-                                        setState(() {
-                                          _loadStatus = LoadStatus.LOADING;
-                                        });
-                                        this.widget._initOffset = 0;
-                                        ++this.widget._index;
-                                        this.widget._bookUrl =
-                                            _listBean[this.widget._index].link;
-                                        getData();
-                                      }
+                                    if (bookItem.chaptersIndex >= _listBean.length - 1) {
+                                      Fluttertoast.showToast(
+                                          msg: "没有下一章了", fontSize: 14.0);
                                     } else {
-                                      if (this.widget._index == 0) {
-                                        Fluttertoast.showToast(
-                                            msg: "没有下一章了", fontSize: 14.0);
-                                      } else {
-                                        setState(() {
-                                          _loadStatus = LoadStatus.LOADING;
-                                        });
-                                        _controller = ScrollController();
-                                        this.widget._initOffset = 0;
-                                        --this.widget._index;
-                                        this.widget._bookUrl =
-                                            _listBean[this.widget._index].link;
-                                        getData();
-                                      }
+                                      setState(() {
+                                        _loadStatus = LoadStatus.LOADING;
+                                      });
+                                      bookItem.offset = 0;
+                                      bookItem.chaptersIndex++;
+                                      this.getChapterContent(bookItem.chaptersIndex);
                                     }
                                   },
                                   child: Text("下一章"),
@@ -328,61 +271,6 @@ class BookContentPageState extends State<BookContentPage>
                       ),
           ),
           settingView(),
-
-          /// 加入书架
-          _isAddBookshelf
-              ? Container()
-              : Positioned(
-                  top: 78,
-                  right: 0,
-                  child: Container(
-                    width: _addBookshelfWidth,
-                    child: AnimatedPadding(
-                      padding:
-                          EdgeInsets.fromLTRB(_addBookshelfPadding, 30, 0, 0),
-                      duration: Duration(milliseconds: _duration),
-                      child: GestureDetector(
-                        onTap: () {
-                          Fluttertoast.showToast(msg: "加入书架成功", fontSize: 14.0);
-                          addBookshelf();
-                          setState(() {
-                            _isAddBookshelf = true;
-                          });
-                        },
-                        child: Container(
-                          width: _addBookshelfWidth,
-                          padding: EdgeInsets.fromLTRB(10, 7, 0, 7),
-                          decoration: BoxDecoration(
-                            color: MyColors.contentBgColor,
-                            borderRadius: BorderRadius.horizontal(
-                              left: Radius.circular(50),
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: <Widget>[
-                              Image.asset(
-                                "images/icon_add_bookshelf.png",
-                                height: 20,
-                                width: 20,
-                              ),
-                              SizedBox(
-                                width: 5,
-                              ),
-                              Text(
-                                "加入书架",
-                                style: TextStyle(
-                                  color: MyColors.contentColor,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
           //状态栏颜色
           Positioned(
             top: 0,
@@ -454,7 +342,7 @@ class BookContentPageState extends State<BookContentPage>
                         context,
                         new MaterialPageRoute(
                             builder: (context) =>
-                                BookInfoPage(this.widget._bookId, true)),
+                                BookInfoPage(this.widget._bookUrl, true)),
                       );
                     },
                     child: Padding(
@@ -510,156 +398,157 @@ class BookContentPageState extends State<BookContentPage>
               padding: EdgeInsets.fromLTRB(
                   Dimens.leftMargin, 20, Dimens.rightMargin, Dimens.leftMargin),
               color: MyColors.contentBgColor,
-              child: Column(
-                children: <Widget>[
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Text(
-                        "字号",
-                        style: TextStyle(
-                            color: MyColors.contentColor,
-                            fontSize: Dimens.textSizeM),
-                      ),
-                      SizedBox(
-                        width: 14,
-                      ),
-                      Image.asset(
-                        "images/icon_content_font_small.png",
-                        color: MyColors.white,
-                        width: 28,
-                        height: 18,
-                      ),
-                      Expanded(
-                        child: SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            valueIndicatorColor: MyColors.textPrimaryColor,
-                            inactiveTrackColor: MyColors.white,
-                            activeTrackColor: MyColors.textPrimaryColor,
-                            activeTickMarkColor: Colors.transparent,
-                            inactiveTickMarkColor: Colors.transparent,
-                            trackHeight: 2.5,
-                            thumbShape:
-                                RoundSliderThumbShape(enabledThumbRadius: 8),
-                          ),
-                          child: Slider(
-                            value: _textSizeValue,
-                            label: "字号：$_textSizeValue",
-                            divisions: 20,
-                            min: 10,
-                            max: 30,
-                            onChanged: (double value) {
-                              setState(() {
-                                _textSizeValue = value;
-                              });
-                            },
-                            onChangeEnd: (value) {
-                              _spSetTextSizeValue(value);
-                            },
+              child: SingleChildScrollView(
+                child: Column(
+                  children: <Widget>[
+                    Row(
+                      mainAxisSize: MainAxisSize.max,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        Text(
+                          "字号",
+                          style: TextStyle(
+                              color: MyColors.contentColor,
+                              fontSize: Dimens.textSizeM),
+                        ),
+                        SizedBox(
+                          width: 14,
+                        ),
+                        Image.asset(
+                          "images/icon_content_font_small.png",
+                          color: MyColors.white,
+                          width: 28,
+                          height: 18,
+                        ),
+                        Expanded(
+                          child: SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              valueIndicatorColor: MyColors.textPrimaryColor,
+                              inactiveTrackColor: MyColors.white,
+                              activeTrackColor: MyColors.textPrimaryColor,
+                              activeTickMarkColor: Colors.transparent,
+                              inactiveTickMarkColor: Colors.transparent,
+                              trackHeight: 2.5,
+                              thumbShape:
+                              RoundSliderThumbShape(enabledThumbRadius: 8),
+                            ),
+                            child: Slider(
+                              value: _textSizeValue,
+                              label: "字号：$_textSizeValue",
+                              divisions: 20,
+                              min: 10,
+                              max: 30,
+                              onChanged: (double value) {
+                                setState(() {
+                                  _textSizeValue = value;
+                                });
+                              },
+                              onChangeEnd: (value) {
+                                _spSetTextSizeValue(value);
+                              },
+                            ),
                           ),
                         ),
-                      ),
-                      Image.asset(
-                        "images/icon_content_font_big.png",
-                        color: MyColors.white,
-                        width: 28,
-                        height: 18,
-                      ),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 12,
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Text(
-                        "间距",
-                        style: TextStyle(
-                            color: MyColors.contentColor,
-                            fontSize: Dimens.textSizeM),
-                      ),
-                      SizedBox(
-                        width: 14,
-                      ),
-                      Image.asset(
-                        "images/icon_content_space_big.png",
-                        color: MyColors.white,
-                        width: 28,
-                        height: 18,
-                      ),
-                      Expanded(
-                        child: SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            valueIndicatorColor: MyColors.textPrimaryColor,
-                            inactiveTrackColor: MyColors.white,
-                            activeTrackColor: MyColors.textPrimaryColor,
-                            activeTickMarkColor: Colors.transparent,
-                            inactiveTickMarkColor: Colors.transparent,
-                            trackHeight: 2.5,
-                            thumbShape:
-                                RoundSliderThumbShape(enabledThumbRadius: 8),
-                          ),
-                          child: Slider(
-                            value: _spaceValue,
-                            label: "字间距：$_spaceValue",
-                            min: 1.0,
-                            divisions: 20,
-                            max: 3.0,
-                            onChanged: (double value) {
-                              setState(() {
-                                _spaceValue = value;
-                              });
-                            },
-                            onChangeEnd: (value) {
-                              _spSetSpaceValue(value);
-                            },
+                        Image.asset(
+                          "images/icon_content_font_big.png",
+                          color: MyColors.white,
+                          width: 28,
+                          height: 18,
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.max,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        Text(
+                          "间距",
+                          style: TextStyle(
+                              color: MyColors.contentColor,
+                              fontSize: Dimens.textSizeM),
+                        ),
+                        SizedBox(
+                          width: 14,
+                        ),
+                        Image.asset(
+                          "images/icon_content_space_big.png",
+                          color: MyColors.white,
+                          width: 28,
+                          height: 18,
+                        ),
+                        Expanded(
+                          child: SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              valueIndicatorColor: MyColors.textPrimaryColor,
+                              inactiveTrackColor: MyColors.white,
+                              activeTrackColor: MyColors.textPrimaryColor,
+                              activeTickMarkColor: Colors.transparent,
+                              inactiveTickMarkColor: Colors.transparent,
+                              trackHeight: 2.5,
+                              thumbShape:
+                              RoundSliderThumbShape(enabledThumbRadius: 8),
+                            ),
+                            child: Slider(
+                              value: _spaceValue,
+                              label: "字间距：$_spaceValue",
+                              min: 1.0,
+                              divisions: 20,
+                              max: 3.0,
+                              onChanged: (double value) {
+                                setState(() {
+                                  _spaceValue = value;
+                                });
+                              },
+                              onChangeEnd: (value) {
+                                _spSetSpaceValue(value);
+                              },
+                            ),
                           ),
                         ),
-                      ),
-                      Image.asset(
-                        "images/icon_content_space_small.png",
-                        color: MyColors.white,
-                        width: 28,
-                        height: 18,
-                      ),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 32,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    mainAxisSize: MainAxisSize.max,
-                    children: <Widget>[
-                      InkWell(
-                        onTap: () {
-                          print("openDrawer");
-                          closeSettingView();
-                          _scaffoldKey.currentState.openDrawer();
-                        },
-                        child: Image.asset(
-                          "images/icon_content_catalog.png",
+                        Image.asset(
+                          "images/icon_content_space_small.png",
+                          color: MyColors.white,
+                          width: 28,
+                          height: 18,
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisSize: MainAxisSize.max,
+                      children: <Widget>[
+                        InkWell(
+                          onTap: () {
+                            closeSettingView();
+                            _scaffoldKey.currentState.openDrawer();
+                          },
+                          child: Image.asset(
+                            "images/icon_content_catalog.png",
+                            height: 50,
+                          ),
+                        ),
+                        Image.asset(
+                          "images/icon_content_setting.png",
                           height: 50,
                         ),
-                      ),
-                      Image.asset(
-                        "images/icon_content_setting.png",
-                        height: 50,
-                      ),
-                      Image.asset(
-                        "images/icon_content_brightness.png",
-                        height: 50,
-                      ),
-                      Image.asset(
-                        "images/icon_content_read.png",
-                        height: 50,
-                      ),
-                    ],
-                  ),
-                ],
+                        Image.asset(
+                          "images/icon_content_brightness.png",
+                          height: 50,
+                        ),
+                        Image.asset(
+                          "images/icon_content_read.png",
+                          height: 50,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -669,54 +558,47 @@ class BookContentPageState extends State<BookContentPage>
   }
 
   Widget itemView(int index) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          setState(() {
+    return Container(
+      height: menuHeight,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
             setState(() {
               _loadStatus = LoadStatus.LOADING;
-              this.widget._initOffset = 0;
-              this.widget._index = index;
-              this.widget._bookUrl = _listBean[index].link;
-              getData();
+              bookItem.offset = 0;
+              bookItem.chaptersIndex = index;
+              this.getChapterContent(index);
             });
-          });
-          Navigator.pop(context);
-        },
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-              Dimens.leftMargin, 16, Dimens.rightMargin, 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            children: <Widget>[
-              Padding(
-                padding: EdgeInsets.fromLTRB(0, 4, 0, 0),
-                child: Text(
-                  "${index + 1}.  ",
-                  style: TextStyle(fontSize: 9, color: MyColors.textBlack9),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  _listBean[index].title,
-                  style: TextStyle(
-                    fontSize: Dimens.textSizeM,
-                    color: this.widget._index == index
-                        ? MyColors.textPrimaryColor
-                        : MyColors.textBlack9,
+            Navigator.pop(context);
+          },
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+                Dimens.leftMargin, 16, Dimens.rightMargin, 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
+              children: <Widget>[
+                Padding(
+                  padding: EdgeInsets.fromLTRB(0, 4, 0, 0),
+                  child: Text(
+                    "${index + 1}.  ",
+                    style: TextStyle(fontSize: 9, color: MyColors.textBlack9),
                   ),
                 ),
-              ),
-              _listBean[index].isVip
-                  ? Image.asset(
-                      "images/icon_chapters_vip.png",
-                      width: 16,
-                      height: 16,
-                    )
-                  : Container(),
-            ],
+                Expanded(
+                  child: Text(
+                    _listBean[index].name,
+                    style: TextStyle(
+                      fontSize: Dimens.textSizeM,
+                      color: bookItem.chaptersIndex == index
+                          ? MyColors.textPrimaryColor
+                          : MyColors.textBlack9,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -745,95 +627,66 @@ class BookContentPageState extends State<BookContentPage>
 
   /// 添加到书架
   void addBookshelf() {
-    double index = (this.widget._index * 100 / _listBean.length);
-    if (this.widget._isReversed) {
-      index = 100 - index;
-    }
+    double index = (bookItem.chaptersIndex * 100 / _listBean.length);
     if (index < 0.1) {
       index = 0.1;
     }
-    var bookshelfBean = BookshelfBean(
-      this.widget._bookName,
-      this.widget._bookImage,
-      index.toStringAsFixed(1),
-      this.widget._bookUrl,
-      this.widget._bookId,
-      _offset,
-      this.widget._isReversed ? 1 : 0,
-      this.widget._index,
-    );
+    bookItem.readProgress = index.toStringAsFixed(1);
     if (_isAddBookshelf) {
-      _dbHelper.updateBooks(bookshelfBean).then((i) {});
+      _dbHelper.updateBooks(bookItem).then((i) {});
     } else {
-      _dbHelper.addBookshelfItem(bookshelfBean);
+      _dbHelper.addBookshelfItem(bookItem);
     }
     eventBus.fire(new BooksEvent());
   }
 
-  /// 获取书籍内容
-  void getData() async {
-    _controller = new ScrollController(
-        initialScrollOffset: this.widget._initOffset, keepScrollOffset: false);
-    _controller.addListener(() {
-      print("offset = ${_controller.offset}");
-      _offset = _controller.offset;
+  void getChaptersListData() async {
+    var sourceItem = await DetailSource.fromUrl(widget._bookUrl).getAsyncInfo();
+    var bookInfo = await _dbHelper.queryBooks(
+        BookItem.createBookId(sourceItem.name, sourceItem.author));
+    setState(() {
+      source = sourceItem;
+      _listBean = sourceItem.chapter;
+      bookItem = bookInfo??BookItem(
+          sourceItem.name,
+          sourceItem.author,
+          sourceItem.cover,
+          "0",
+          sourceItem.uri.toString(),
+          0,
+          0);
     });
-    await Repository()
-        .getBookChaptersContent(this.widget._bookUrl)
-        .then((json) {
-      BookContentResp bookContentResp = BookContentResp(json);
-      setState(() {
-        _loadStatus = LoadStatus.SUCCESS;
-
-        ///部分小说文字排版有问题，需要特殊处理
-        _content = bookContentResp.chapter.cpContent
-            .replaceAll("\t", "\n")
-            .replaceAll("\n\n\n\n", "\n\n");
-        _title = bookContentResp.chapter.title;
-
-        if (bookContentResp.chapter.isVip) {
-          showVipDialog();
-        }
-      });
-    }).catchError((e) {
-      //请求出错
-      print("e = " + e.toString());
-      setState(() {
-        _loadStatus = LoadStatus.FAILURE;
-        _title = "";
-      });
-    });
+    this.getChapterContent(bookItem.chaptersIndex);
   }
 
-  //获取章节列表
-  void getChaptersListData() async {
-    GenuineSourceReq genuineSourceReq =
-        GenuineSourceReq("summary", this.widget._bookId);
-    var entryPoint =
-        await Repository().getBookGenuineSource(genuineSourceReq.toJson());
-    BookGenuineSourceResp bookGenuineSourceResp =
-        BookGenuineSourceResp(entryPoint);
-    if (bookGenuineSourceResp.data != null &&
-        bookGenuineSourceResp.data.length > 0) {
-      await Repository()
-          .getBookChapters(bookGenuineSourceResp.data[0].id)
-          .then((json) {
-        BookChaptersResp bookChaptersResp = BookChaptersResp(json);
-        setState(() {
-          _listBean = bookChaptersResp.chapters;
-          if (this.widget._isReversed) {
-            _listBean = _listBean.reversed.toList();
-          }
-        });
-        if (this.widget._bookUrl == null || this.widget._bookUrl.length == 0) {
-          this.widget._bookUrl = _listBean[0].link;
-        }
-        getData();
-      }).catchError((e) {
-        //请求出错
-        print(e.toString());
-      });
+  void getChapterContent(int index) async {
+    if (index == null ||index < 0) {
+      index = 0;
     }
+    ChapterItem chapter = _listBean[index];
+    await ChapterSource(chapter)
+        .getAsyncInfo()
+        .then((item) {
+      setState(() {
+        _loadStatus = LoadStatus.SUCCESS;
+        ///部分小说文字排版有问题，需要特殊处理
+        _content = item.content;
+        _title = chapter.name;
+      });
+    });
+    this.setScrollController();
+  }
+
+  void setScrollController() {
+    _controller = new ScrollController(
+        initialScrollOffset: bookItem.offset, keepScrollOffset: false);
+    _controller.addListener(() {
+      bookItem.offset = _controller.offset;
+    });
+    _chapterMenuController = new ScrollController(
+        initialScrollOffset: ((menuHeight + 1) * (bookItem.chaptersIndex - 7 <= 0
+            ? 0 : bookItem.chaptersIndex - 7)).toDouble(),
+        keepScrollOffset: false);
   }
 
   //设置状态栏文字颜色
@@ -844,7 +697,6 @@ class BookContentPageState extends State<BookContentPage>
   }
 
   /// 判断是否加入书架
-
   Future<bool> isAddBookshelf() async {
     var bookList = await _dbHelper.queryBooks(this.widget._bookId);
     if (bookList != null) {
@@ -879,7 +731,7 @@ class BookContentPageState extends State<BookContentPage>
   @override
   void onReload() {
     _loadStatus = LoadStatus.LOADING;
-    getData();
+    this.getChapterContent(bookItem.chaptersIndex);
   }
 
   @override

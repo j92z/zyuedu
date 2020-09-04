@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:zyuedu/data/model/sources/detail_source.dart';
-import 'package:zyuedu/db/db_helper_bak.dart';
+import 'package:zyuedu/db/db_helper.dart';
 import 'package:zyuedu/event/event_bus.dart';
 import 'package:zyuedu/res/colors.dart';
 import 'package:zyuedu/res/dimens.dart';
 import 'package:zyuedu/ui/bookshelf/book_item.dart';
-import 'package:zyuedu/ui/details/book_chapters_content_page_bak.dart';
+import 'package:zyuedu/ui/details/book_chapters_content_page.dart';
 import 'package:zyuedu/ui/search/book_search_page.dart';
 import 'package:zyuedu/util/utils.dart';
 
@@ -144,11 +144,7 @@ class BookshelfPageState extends State<BookshelfPage> {
                 Navigator.push(context, MaterialPageRoute(builder: (context) {
                   return BookContentPage(
                       _listBean[index].url,
-                      _listBean[index].bookId,
-                      _listBean[index].cover,
-                      _listBean[index].chaptersIndex,
-                      _listBean[index].name,
-                      _listBean[index].offset);
+                      _listBean[index].bookId);
                 }));
               }
             },

@@ -1,27 +1,23 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:zyuedu/data/model/response/book_info_resp.dart';
-import 'package:zyuedu/data/repository/repository.dart';
+import 'package:zyuedu/data/model/sources/detail_source.dart';
 import 'package:zyuedu/db/db_helper.dart';
 import 'package:zyuedu/event/event_bus.dart';
 import 'package:zyuedu/res/colors.dart';
 import 'package:zyuedu/res/dimens.dart';
+import 'package:zyuedu/ui/bookshelf/book_item.dart';
 import 'package:zyuedu/ui/details/book_chapters_content_page.dart';
-import 'package:zyuedu/ui/details/book_chapters_page.dart';
-import 'package:zyuedu/util/utils.dart';
 import 'package:zyuedu/widget/load_view.dart';
-import 'package:zyuedu/widget/static_rating_bar.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 
 ///@author longshaohua
 ///详情页
 
 class BookInfoPage extends StatefulWidget {
-  final String _bookId;
+  final String url;
   final bool _back;
 
-  BookInfoPage(this._bookId, this._back);
+  BookInfoPage(this.url, this._back);
 
   @override
   State<StatefulWidget> createState() => BookInfoPageState();
@@ -30,7 +26,7 @@ class BookInfoPage extends StatefulWidget {
 class BookInfoPageState extends State<BookInfoPage>
     implements OnLoadReloadListener {
   LoadStatus _loadStatus = LoadStatus.LOADING;
-  BookInfoResp _bookInfoResp;
+  DetailSource source;
   ScrollController _controller = new ScrollController();
   Color _iconColor = Color.fromARGB(255, 255, 255, 255);
   Color _titleBgColor = Color.fromARGB(0, 255, 255, 255);
@@ -38,11 +34,12 @@ class BookInfoPageState extends State<BookInfoPage>
   bool _isDividerGone = true;
   String _image;
   String _bookName;
+  // List<ChapterItem> chapterList = [];
   var _dbHelper = DbHelper();
 
   //判断是否加入书架
   bool _isAddBookshelf = false;
-  BookshelfBean _bookshelfBean;
+  BookItem _bookshelfBean;
   StreamSubscription booksSubscription;
 
   @override
@@ -53,7 +50,6 @@ class BookInfoPageState extends State<BookInfoPage>
     });
     getData();
     _controller.addListener(() {
-      print(_controller.offset);
       //170
       if (_controller.offset <= 170) {
         setState(() {
@@ -102,54 +98,45 @@ class BookInfoPageState extends State<BookInfoPage>
     }
 
     return Stack(
-      alignment: Alignment.topLeft,
+      // alignment: Alignment.topLeft,
       children: <Widget>[
         contentView(),
         titleView(),
+
+        Column(), //for expanded
+
         Positioned(
           bottom: 0,
           right: 0,
           left: 0,
-          child: MaterialButton(
-            height: Dimens.titleHeight,
-            color: MyColors.textPrimaryColor,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(0))),
-            onPressed: () {
-              if (this.widget._back) {
-                Navigator.pop(context);
-                return;
-              }
-              if (_isAddBookshelf) {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return BookContentPage(
-                      _bookshelfBean.bookUrl,
-                      this.widget._bookId,
-                      _image,
-                      _bookshelfBean.chaptersIndex,
-                      _bookshelfBean.isReversed == 1,
-                      _bookName,
-                      _bookshelfBean.offset);
-                }));
-              } else {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return BookContentPage(null, this.widget._bookId, _image, 0,
-                      false, _bookName, 0);
-                }));
-              }
-            },
-            child: Text(
-              _isAddBookshelf
-                  ? (_bookshelfBean.readProgress == "0" ? "开始阅读" : "继续阅读")
-                  : "开始阅读",
-              style: TextStyle(color: MyColors.white, fontSize: 16),
-            ),
-          ),
+          child: bottomView(),
         )
       ],
     );
   }
 
+  Widget bottomView() {
+    return Row(
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: <Widget>[
+        Container(
+          height: 14,
+          color: MyColors.dividerColor,
+        ),
+        bodyChildView(
+            _isAddBookshelf ? "已在书架" : "加入书架", MyColors.white, MyColors.detailPageButtonColor, this.updateBookShelf),
+        bodyChildView(_isAddBookshelf
+            ? (_bookshelfBean.readProgress == "0" ? "开始阅读" : "继续阅读")
+            : "开始阅读", MyColors.detailPageButtonColor, MyColors.white, (){
+            Navigator.push(context, MaterialPageRoute(builder: (context) {
+              var bookId = BookItem.createBookId(source.name, source.author);
+              return BookContentPage(widget.url,bookId);
+            }));
+        }),
+      ],
+    );
+  }
   Widget titleView() {
     return Container(
       color: _titleBgColor,
@@ -178,7 +165,7 @@ class BookInfoPageState extends State<BookInfoPage>
                 ),
               )),
           Text(
-            _bookInfoResp.title,
+            _bookName,
             style: TextStyle(
                 fontSize: Dimens.titleTextSize, color: _titleTextColor),
             overflow: TextOverflow.ellipsis,
@@ -223,71 +210,71 @@ class BookInfoPageState extends State<BookInfoPage>
       child: Column(
         children: <Widget>[
           coverView(),
-          bodyView(),
-          Container(
-            height: 14,
-            color: MyColors.dividerColor,
-          ),
           Padding(
               padding: EdgeInsets.fromLTRB(
                   Dimens.leftMargin, 20, Dimens.rightMargin, 20),
               child: Text(
-                _bookInfoResp.longIntro,
+                source.introduce,
                 style: TextStyle(
                     fontSize: Dimens.textSizeM, color: MyColors.black),
               )),
-          Container(
-            height: 14,
-            color: MyColors.dividerColor,
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-                Dimens.leftMargin, 12, Dimens.rightMargin, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                Text(
-                  "最新书评",
-                  style: TextStyle(
-                      fontSize: Dimens.textSizeM, color: MyColors.textBlack3),
-                ),
-                Expanded(
-                  child: Container(),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(0, 1, 3, 0),
-                  child: Image.asset(
-                    'images/icon_info_edit.png',
-                    width: 16,
-                    height: 16,
-                  ),
-                ),
-                Text(
-                  "写书评",
-                  style: TextStyle(
-                      fontSize: Dimens.textSizeL, color: Color(0xFF33C3A5)),
-                )
-              ],
-            ),
-          ),
-          commentList(),
-          Container(
-            child: Text(
-              "查看更多评论（268）",
-              style: TextStyle(
-                  color: MyColors.textPrimaryColor, fontSize: Dimens.textSizeL),
-            ),
-            padding: EdgeInsets.fromLTRB(0, 12, 0, 12),
-          ),
-          Container(
-            alignment: Alignment.center,
-            color: MyColors.dividerColor,
-            child: Text(
-              "" + _bookInfoResp.copyrightDesc,
-              style: TextStyle(color: MyColors.textBlack9, fontSize: 12),
-            ),
-            padding: EdgeInsets.fromLTRB(0, 14, 0, 68),
-          ),
+          // Container(
+          //   height: 14,
+          //   color: MyColors.dividerColor,
+          // ),
+
+          // Container(
+          //   height: 14,
+          //   color: MyColors.dividerColor,
+          // ),
+          // Padding(
+          //   padding: EdgeInsets.fromLTRB(
+          //       Dimens.leftMargin, 12, Dimens.rightMargin, 12),
+          //   child: Row(
+          //     crossAxisAlignment: CrossAxisAlignment.center,
+          //     children: <Widget>[
+          //       Text(
+          //         "最新书评",
+          //         style: TextStyle(
+          //             fontSize: Dimens.textSizeM, color: MyColors.textBlack3),
+          //       ),
+          //       Expanded(
+          //         child: Container(),
+          //       ),
+          //       Padding(
+          //         padding: EdgeInsets.fromLTRB(0, 1, 3, 0),
+          //         child: Image.asset(
+          //           'images/icon_info_edit.png',
+          //           width: 16,
+          //           height: 16,
+          //         ),
+          //       ),
+          //       Text(
+          //         "写书评",
+          //         style: TextStyle(
+          //             fontSize: Dimens.textSizeL, color: Color(0xFF33C3A5)),
+          //       )
+          //     ],
+          //   ),
+          // ),
+          // commentList(),
+          // Container(
+          //   child: Text(
+          //     "查看更多评论（268）",
+          //     style: TextStyle(
+          //         color: MyColors.textPrimaryColor, fontSize: Dimens.textSizeL),
+          //   ),
+          //   padding: EdgeInsets.fromLTRB(0, 12, 0, 12),
+          // ),
+          // Container(
+          //   alignment: Alignment.center,
+          //   color: MyColors.dividerColor,
+          //   child: Text(
+          //     "" + _bookInfoResp.copyrightDesc,
+          //     style: TextStyle(color: MyColors.textBlack9, fontSize: 12),
+          //   ),
+          //   padding: EdgeInsets.fromLTRB(0, 14, 0, 68),
+          // ),
         ],
       ),
     );
@@ -298,13 +285,13 @@ class BookInfoPageState extends State<BookInfoPage>
     return Container(
       color: MyColors.infoBgColor,
       padding:
-          EdgeInsets.fromLTRB(Dimens.leftMargin, 68, Dimens.rightMargin, 20),
+          EdgeInsets.fromLTRB(Dimens.leftMargin, 50, Dimens.rightMargin, 20),
       child: Row(
         mainAxisSize: MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Image.network(
-            Utils.convertImageUrl(_bookInfoResp.cover),
+            _image,
             height: 137,
             width: 100,
             fit: BoxFit.cover,
@@ -319,60 +306,60 @@ class BookInfoPageState extends State<BookInfoPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  _bookInfoResp.title,
+                  _bookName,
                   maxLines: 1,
                   style: TextStyle(
                       fontSize: Dimens.titleTextSize, color: MyColors.white),
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  _bookInfoResp.author,
+                  source.author,
                   style: TextStyle(
                       fontSize: Dimens.textSizeM, color: MyColors.white),
                 ),
                 SizedBox(
                   height: 61,
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: <Widget>[
-                    Text(
-                      _bookInfoResp.cat,
-                      style: TextStyle(
-                          fontSize: Dimens.textSizeL, color: MyColors.white),
-                    ),
-                    Container(
-                      margin: EdgeInsets.fromLTRB(11, 0, 11, 0),
-                      color: Color(0x50FFFFFF),
-                      width: 1,
-                      height: 12,
-                      child: Text(""),
-                    ),
-                    Text(
-                      getWordCount(_bookInfoResp.wordCount),
-                      style: TextStyle(
-                          fontSize: Dimens.textSizeL, color: MyColors.white),
-                    ),
-                    Expanded(child: Container()),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(0, 0, 3, 4),
-                      child: Text(
-                        _bookInfoResp.rating != null
-                            ? _bookInfoResp.rating.score.toStringAsFixed(1)
-                            : "7.0",
-                        style: TextStyle(
-                            color: MyColors.fractionColor, fontSize: 23),
-                      ),
-                    ),
-                    Text(
-                      "分",
-                      style: TextStyle(
-                          color: MyColors.white, fontSize: Dimens.textSizeL),
-                    ),
-                  ],
-                ),
+                // Row(
+                //   mainAxisSize: MainAxisSize.max,
+                //   mainAxisAlignment: MainAxisAlignment.start,
+                //   crossAxisAlignment: CrossAxisAlignment.center,
+                //   children: <Widget>[
+                //     Text(
+                //       _bookInfoResp.cat,
+                //       style: TextStyle(
+                //           fontSize: Dimens.textSizeL, color: MyColors.white),
+                //     ),
+                //     Container(
+                //       margin: EdgeInsets.fromLTRB(11, 0, 11, 0),
+                //       color: Color(0x50FFFFFF),
+                //       width: 1,
+                //       height: 12,
+                //       child: Text(""),
+                //     ),
+                //     Text(
+                //       getWordCount(_bookInfoResp.wordCount),
+                //       style: TextStyle(
+                //           fontSize: Dimens.textSizeL, color: MyColors.white),
+                //     ),
+                //     Expanded(child: Container()),
+                //     Padding(
+                //       padding: EdgeInsets.fromLTRB(0, 0, 3, 4),
+                //       child: Text(
+                //         _bookInfoResp.rating != null
+                //             ? _bookInfoResp.rating.score.toStringAsFixed(1)
+                //             : "7.0",
+                //         style: TextStyle(
+                //             color: MyColors.fractionColor, fontSize: 23),
+                //       ),
+                //     ),
+                //     Text(
+                //       "分",
+                //       style: TextStyle(
+                //           color: MyColors.white, fontSize: Dimens.textSizeL),
+                //     ),
+                //   ],
+                // ),
               ],
             ),
           )
@@ -381,79 +368,128 @@ class BookInfoPageState extends State<BookInfoPage>
     );
   }
 
-  Widget bodyView() {
-    return Row(
-      mainAxisSize: MainAxisSize.max,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: <Widget>[
-        bodyChildView(
-            _isAddBookshelf
-                ? 'images/icon_details_bookshelf_add.png'
-                : 'images/icon_details_bookshelf.png',
-            _isAddBookshelf ? "已在书架" : "加入书架",
-            0),
-        bodyChildView('images/icon_details_chapter.png',
-            _bookInfoResp.chaptersCount.toString() + "章", 1),
-        bodyChildView('images/icon_details_reward.png', "支持作品", 2),
-        bodyChildView('images/icon_details_download.png', "批量下载", 3),
-      ],
-    );
-  }
+  // Widget bodyView() {
+  //   return Row(
+  //       mainAxisSize: MainAxisSize.max,
+  //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //       children: <Widget>[
+  //         bodyChildView(
+  //             _isAddBookshelf
+  //                 ? 'images/icon_details_bookshelf_add.png'
+  //                 : 'images/icon_details_bookshelf.png',
+  //             _isAddBookshelf ? "已在书架" : "加入书架",
+  //             0),
+  //         bodyChildView('images/icon_details_chapter.png',
+  //             source.chapter.length.toString() + "章", 1),
+  //         // bodyChildView('images/icon_details_reward.png', "支持作品", 2),
+  //         // bodyChildView('images/icon_details_download.png', "批量下载", 3),
+  //       ],
+  //   );
+  // }
 
-  Widget bodyChildView(String img, String content, int tap) {
+  // Widget bodyChildView(String img, String content, int tap) {
+  //   return Expanded(
+  //     flex: 1,
+  //     child: new GestureDetector(
+  //       // onTap: () {
+  //       //   if (tap == 0) {
+  //       //     if (!_isAddBookshelf) {
+  //       //       var bean = BookshelfBean(
+  //       //         _bookName,
+  //       //         _image,
+  //       //         "0",
+  //       //         "",
+  //       //         this.widget._bookId,
+  //       //         0,
+  //       //         0,
+  //       //         0,
+  //       //       );
+  //       //       _dbHelper.addBookshelfItem(bean);
+  //       //       this._bookshelfBean = bean;
+  //       //       setState(() {
+  //       //         _isAddBookshelf = true;
+  //       //       });
+  //       //       eventBus.fire(new BooksEvent());
+  //       //     }
+  //       //   }
+  //       //   if (tap == 1) {
+  //       //     /// 章节目录页
+  //       //     Navigator.push(
+  //       //       context,
+  //       //       MaterialPageRoute(
+  //       //           builder: (content) =>
+  //       //               BookChaptersPage(this.widget._bookId, _image, _bookName)),
+  //       //     );
+  //       //   }
+  //       // },
+  //       child: Container(
+  //         alignment: Alignment.center,
+  //         padding: EdgeInsets.fromLTRB(0, 12, 0, 12),
+  //         child: Column(
+  //           mainAxisSize: MainAxisSize.max,
+  //           crossAxisAlignment: CrossAxisAlignment.center,
+  //           children: <Widget>[
+  //             Image.asset(
+  //               img,
+  //               width: 34,
+  //               height: 34,
+  //               fit: BoxFit.contain,
+  //             ),
+  //             Text(
+  //               content,
+  //               style: TextStyle(
+  //                   color: MyColors.textBlack3, fontSize: Dimens.textSizeM),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
+
+  Widget bodyChildView(String content, Color buttonColor, Color textColor, GestureTapCallback _click) {
     return Expanded(
       flex: 1,
       child: new GestureDetector(
-        onTap: () {
-          if (tap == 0) {
-            if (!_isAddBookshelf) {
-              var bean = BookshelfBean(
-                _bookName,
-                _image,
-                "0",
-                "",
-                this.widget._bookId,
-                0,
-                0,
-                0,
-              );
-              _dbHelper.addBookshelfItem(bean);
-              this._bookshelfBean = bean;
-              setState(() {
-                _isAddBookshelf = true;
-              });
-              eventBus.fire(new BooksEvent());
-            }
-          }
-          if (tap == 1) {
-            /// 章节目录页
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (content) =>
-                      BookChaptersPage(this.widget._bookId, _image, _bookName)),
-            );
-          }
-        },
-        child: Container(
-          alignment: Alignment.center,
-          padding: EdgeInsets.fromLTRB(0, 12, 0, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Image.asset(
-                img,
-                width: 34,
-                height: 34,
-                fit: BoxFit.contain,
+        onTapDown: (detail) => _click(),
+        child:  Container(
+          decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: MyColors.homeGrey, width: 2)
               ),
-              Text(
-                content,
-                style: TextStyle(
-                    color: MyColors.textBlack3, fontSize: Dimens.textSizeM),
-              ),
-            ],
+          ),
+          child: MaterialButton(
+            height: Dimens.titleHeight,
+            color: buttonColor,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(0))),
+            onPressed: () {
+              if (this.widget._back) {
+                Navigator.pop(context);
+                return;
+              }
+              if (_isAddBookshelf) {
+                // Navigator.push(context, MaterialPageRoute(builder: (context) {
+                //   return BookContentPage(
+                //       _bookshelfBean.bookUrl,
+                //       this.widget._bookId,
+                //       _image,
+                //       _bookshelfBean.chaptersIndex,
+                //       _bookshelfBean.isReversed == 1,
+                //       _bookName,
+                //       _bookshelfBean.offset);
+                // }));
+              } else {
+                // Navigator.push(context, MaterialPageRoute(builder: (context) {
+                //   return BookContentPage(null, this.widget._bookId, _image, 0,
+                //       false, _bookName, 0);
+                // }));
+              }
+            },
+            child: Text(
+              content,
+              style: TextStyle(color: textColor, fontSize: 16),
+            ),
           ),
         ),
       ),
@@ -461,145 +497,159 @@ class BookInfoPageState extends State<BookInfoPage>
   }
 
   //评论列表
-  Widget commentList() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(Dimens.leftMargin, 0, Dimens.rightMargin, 0),
-      child: Column(
-        children: <Widget>[
-          itemView("嘻嘻", "求更新，不够看", 4.5, "9", true),
-          itemView("书友805699513", "不错不错。", 5, "8", false),
-          itemView("书友007", "没看先点赞", 5, "5", true),
-          itemView("书友00888", "好文章不错，就是更新太慢了。", 3, "1", false),
-          itemView("书友00666", "打卡", 5, "9", true),
-        ],
-      ),
-    );
-  }
+  // Widget commentList() {
+  //   return Padding(
+  //     padding: EdgeInsets.fromLTRB(Dimens.leftMargin, 0, Dimens.rightMargin, 0),
+  //     child: Column(
+  //       children: <Widget>[
+  //         itemView("嘻嘻", "求更新，不够看", 4.5, "9", true),
+  //         itemView("书友805699513", "不错不错。", 5, "8", false),
+  //         itemView("书友007", "没看先点赞", 5, "5", true),
+  //         itemView("书友00888", "好文章不错，就是更新太慢了。", 3, "1", false),
+  //         itemView("书友00666", "打卡", 5, "9", true),
+  //       ],
+  //     ),
+  //   );
+  // }
 
-  Widget itemView(
-      String name, String content, double rate, String likeNum, bool image) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            new ClipOval(
-              child: new SizedBox(
-                width: 32,
-                height: 32,
-                child: new Image.asset("images/icon_default_avatar.png"),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(name,
-                      style: TextStyle(
-                          color: MyColors.textBlack6,
-                          fontSize: Dimens.textSizeL)),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(0, 5, 0, 0),
-                    child: new StaticRatingBar(
-                      size: 10,
-                      rate: rate,
-                    ),
-                  )
-                ],
-              ),
-            )
-          ],
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(0, 14, 0, 14),
-          child: Text(
-            content,
-            style: TextStyle(
-                color: MyColors.textBlack3, fontSize: Dimens.textSizeL),
-          ),
-        ),
-        Row(
-          children: <Widget>[
-            Text(
-              "2019.05.09",
-              style: TextStyle(color: MyColors.textBlack9, fontSize: 12),
-            ),
-            Expanded(
-              child: Container(),
-            ),
-            GestureDetector(
-              child: image
-                  ? Image.asset(
-                      "images/icon_like_true.png",
-                      width: 18,
-                      height: 18,
-                    )
-                  : Image.asset(
-                      "images/icon_like_false.png",
-                      width: 18,
-                      height: 18,
-                    ),
-              onTap: () {
-                Fluttertoast.showToast(msg: "本app不允许点赞", fontSize: 14.0);
-              },
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(2, 0, 20, 0),
-              child: Text(
-                likeNum,
-                style: TextStyle(color: MyColors.textBlack9, fontSize: 12),
-              ),
-            ),
-            Image.asset(
-              "images/icon_comment.png",
-              width: 18,
-              height: 18,
-            ),
-          ],
-        ),
-        SizedBox(
-          height: 18,
-        )
-      ],
-    );
-  }
+  // Widget itemView(
+  //     String name, String content, double rate, String likeNum, bool image) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: <Widget>[
+  //       Row(
+  //         children: <Widget>[
+  //           new ClipOval(
+  //             child: new SizedBox(
+  //               width: 32,
+  //               height: 32,
+  //               child: new Image.asset("images/icon_default_avatar.png"),
+  //             ),
+  //           ),
+  //           Padding(
+  //             padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: <Widget>[
+  //                 Text(name,
+  //                     style: TextStyle(
+  //                         color: MyColors.textBlack6,
+  //                         fontSize: Dimens.textSizeL)),
+  //                 Padding(
+  //                   padding: EdgeInsets.fromLTRB(0, 5, 0, 0),
+  //                   child: new StaticRatingBar(
+  //                     size: 10,
+  //                     rate: rate,
+  //                   ),
+  //                 )
+  //               ],
+  //             ),
+  //           )
+  //         ],
+  //       ),
+  //       Padding(
+  //         padding: EdgeInsets.fromLTRB(0, 14, 0, 14),
+  //         child: Text(
+  //           content,
+  //           style: TextStyle(
+  //               color: MyColors.textBlack3, fontSize: Dimens.textSizeL),
+  //         ),
+  //       ),
+  //       Row(
+  //         children: <Widget>[
+  //           Text(
+  //             "2019.05.09",
+  //             style: TextStyle(color: MyColors.textBlack9, fontSize: 12),
+  //           ),
+  //           Expanded(
+  //             child: Container(),
+  //           ),
+  //           GestureDetector(
+  //             child: image
+  //                 ? Image.asset(
+  //                     "images/icon_like_true.png",
+  //                     width: 18,
+  //                     height: 18,
+  //                   )
+  //                 : Image.asset(
+  //                     "images/icon_like_false.png",
+  //                     width: 18,
+  //                     height: 18,
+  //                   ),
+  //             onTap: () {
+  //               Fluttertoast.showToast(msg: "本app不允许点赞", fontSize: 14.0);
+  //             },
+  //           ),
+  //           Padding(
+  //             padding: EdgeInsets.fromLTRB(2, 0, 20, 0),
+  //             child: Text(
+  //               likeNum,
+  //               style: TextStyle(color: MyColors.textBlack9, fontSize: 12),
+  //             ),
+  //           ),
+  //           Image.asset(
+  //             "images/icon_comment.png",
+  //             width: 18,
+  //             height: 18,
+  //           ),
+  //         ],
+  //       ),
+  //       SizedBox(
+  //         height: 18,
+  //       )
+  //     ],
+  //   );
+  // }
 
-  String getWordCount(int wordCount) {
-    if (wordCount > 10000) {
-      return (wordCount / 10000).toStringAsFixed(1) + "万字";
+  // String getWordCount(int wordCount) {
+  //   if (wordCount > 10000) {
+  //     return (wordCount / 10000).toStringAsFixed(1) + "万字";
+  //   }
+  //   return wordCount.toString() + "字";
+  // }
+
+  void updateBookShelf() {
+    if (_isAddBookshelf) {
+      _dbHelper.deleteBooks(_bookshelfBean.bookId);
+    } else {
+      var bean = BookItem(_bookName,source.author,_image,"0",source.uri.toString(),0,0);
+      _dbHelper.addBookshelfItem(bean);
+      this._bookshelfBean = bean;
     }
-    return wordCount.toString() + "字";
+    setState(() {
+      _isAddBookshelf = !_isAddBookshelf;
+    });
+    eventBus.fire(new BooksEvent());
   }
 
   void getData() async {
-    await Repository().getBookInfo(this.widget._bookId).then((json) {
-      print("getData1");
+    await DetailSource.fromUrl(widget.url)
+      .getAsyncInfo()
+      .then((item){
       setState(() {
+        source = item;
         _loadStatus = LoadStatus.SUCCESS;
-        _bookInfoResp = BookInfoResp(json);
-        _image = _bookInfoResp.cover;
-        _bookName = _bookInfoResp.title;
+        _image = source.cover;
+        _bookName = source.name;
       });
-      getDbData();
     }).catchError((e) {
       print("getData2${e.toString()}");
       setState(() {
         _loadStatus = LoadStatus.FAILURE;
       });
     });
+    this.getDbData();
   }
 
   void getDbData() async {
-    var list = await _dbHelper.queryBooks(_bookInfoResp.id);
+    var bookId = BookItem.createBookId(source.name, source.author);
+    var list = await _dbHelper.queryBooks(bookId);
     if (list != null) {
-      print("getDbData1");
       _bookshelfBean = list;
       setState(() {
         _isAddBookshelf = true;
       });
     } else {
-      print("getDbData2");
       setState(() {
         _isAddBookshelf = false;
       });

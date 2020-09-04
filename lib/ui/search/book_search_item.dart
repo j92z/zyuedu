@@ -3,7 +3,7 @@ import 'package:zyuedu/data/model/sources/detail_source.dart';
 import 'package:zyuedu/data/model/sources/search_source.dart';
 import 'package:zyuedu/res/colors.dart';
 import 'package:zyuedu/res/dimens.dart';
-import 'package:zyuedu/ui/details/book_info_page_bak.dart';
+import 'package:zyuedu/ui/details/book_info_page.dart';
 
 // ignore: must_be_immutable
 class BookSearchItem extends StatefulWidget {
