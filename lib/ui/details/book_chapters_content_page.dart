@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -55,13 +55,12 @@ class BookContentPageState extends State<BookContentPage>
   bool _isAddBookshelf = false;
   List<ChapterItem> _listBean = [];
   String _title = "";
-  double _offset = 0;
   ScrollController _controller;
   ScrollController _chapterMenuController;
   DetailSource source;
   BookItem bookItem;
   double menuHeight = 53;
-
+  GlobalKey txtKey = GlobalKey();
   @override
   void initState() {
     super.initState();
@@ -78,6 +77,27 @@ class BookContentPageState extends State<BookContentPage>
 
     getChaptersListData();
     setStemStyle();
+  }
+
+  void calcContent() {
+    print(_textSizeValue);
+    print(_spaceValue);
+    final size =MediaQuery.of(context).size;
+    var oneLine = _content.split("").sublist(0, 28);
+    print(oneLine);
+    double count = 0;
+    for (var i in oneLine) {
+      if (i == " ") {
+        count += 0.25;
+      } else {
+        count += 1;
+      }
+    }
+    print(count);
+    var pureWidth = size.width - 16 - 9;
+    print(pureWidth);
+    var textNum = pureWidth / _textSizeValue;
+    print(textNum);
   }
 
   @override
@@ -153,6 +173,11 @@ class BookContentPageState extends State<BookContentPage>
         children: <Widget>[
           GestureDetector(
             onTap: () {
+              final keyContext = txtKey.currentContext;
+              if (keyContext != null) {
+                final txtBox = keyContext.findRenderObject() as RenderBox;
+                print('height ${txtBox.size.height} and width ${txtBox.size.width}');
+              }
               setState(() {
                 _bottomPadding == 0
                     ? _bottomPadding = _bottomHeight
@@ -195,6 +220,7 @@ class BookContentPageState extends State<BookContentPage>
                             ),
                             Text(
                               _content,
+                              key: txtKey,
                               style: TextStyle(
                                 color: _isNighttime
                                     ? MyColors.contentColor
@@ -675,6 +701,7 @@ class BookContentPageState extends State<BookContentPage>
       });
     });
     this.setScrollController();
+    this.calcContent();
   }
 
   void setScrollController() {
