@@ -80,24 +80,61 @@ class BookContentPageState extends State<BookContentPage>
   }
 
   void calcContent() {
-    print(_textSizeValue);
-    print(_spaceValue);
+    // print(_textSizeValue);
+    // print(_spaceValue);
     final size =MediaQuery.of(context).size;
-    var oneLine = _content.split("").sublist(0, 28);
-    print(oneLine);
+    var oneLine = _content.split("");
+    print(size);
+    // print(oneLine);
+    var pureWidth = size.width - 16 - 9;
+    var firstPureHeight = size.height - 16 - MediaQuery.of(context).padding.top - _textSizeValue - 2 - 16;
+    var pureHeight = size.height - 16 - MediaQuery.of(context).padding.top;
+    print(pureWidth);
+    print(firstPureHeight);
+    print(pureHeight);
+    var heightWithRatio = 38 / 31;
+    var textNum = pureWidth ~/ _textSizeValue;
+    var firstLineNum = firstPureHeight ~/ (_textSizeValue * heightWithRatio + _spaceValue);
+    var lineNum = pureHeight ~/ (_textSizeValue * heightWithRatio + _spaceValue);
+    print(textNum);
+    print(firstLineNum);
+    print(lineNum);
+    // return;
     double count = 0;
+    List<String> list = [];
+    List<String> itemList = [];
     for (var i in oneLine) {
       if (i == " ") {
         count += 0.25;
+        if (count >= textNum) {
+          list.add(itemList.join());
+          itemList = [];
+          count = 0;
+        } else {
+          itemList.add(i);
+        }
+      } else if (i == "\n") {
+        itemList.add(i);
+        list.add(itemList.join());
+        itemList = [];
+        count = 0;
       } else {
         count += 1;
+        if (count >= textNum) {
+          list.add(itemList.join());
+          itemList = [];
+          count = 0;
+        } else {
+          itemList.add(i);
+        }
+      }
+      if (list.length >= firstLineNum) {
+        break;
       }
     }
-    print(count);
-    var pureWidth = size.width - 16 - 9;
-    print(pureWidth);
-    var textNum = pureWidth / _textSizeValue;
-    print(textNum);
+    setState(() {
+      _content = list.join();
+    });
   }
 
   @override
@@ -173,11 +210,6 @@ class BookContentPageState extends State<BookContentPage>
         children: <Widget>[
           GestureDetector(
             onTap: () {
-              final keyContext = txtKey.currentContext;
-              if (keyContext != null) {
-                final txtBox = keyContext.findRenderObject() as RenderBox;
-                print('height ${txtBox.size.height} and width ${txtBox.size.width}');
-              }
               setState(() {
                 _bottomPadding == 0
                     ? _bottomPadding = _bottomHeight
@@ -199,15 +231,21 @@ class BookContentPageState extends State<BookContentPage>
                     ? FailureView(this)
                     : SingleChildScrollView(
                         controller: _controller,
+                        physics: false ? AlwaysScrollableScrollPhysics() :NeverScrollableScrollPhysics(),
                         padding: EdgeInsets.fromLTRB(
                           16,
                           16 + MediaQuery.of(context).padding.top,
+                          // 0,
                           9,
                           0,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: <Widget>[
+                            // SizedBox(
+                            //   height: 16 + MediaQuery.of(context).padding.top,
+                            //   // height: 20,
+                            // ),
                             Text(
                               _title,
                               style: TextStyle(
@@ -220,7 +258,6 @@ class BookContentPageState extends State<BookContentPage>
                             ),
                             Text(
                               _content,
-                              key: txtKey,
                               style: TextStyle(
                                 color: _isNighttime
                                     ? MyColors.contentColor
@@ -229,69 +266,69 @@ class BookContentPageState extends State<BookContentPage>
                                 height: _spaceValue,
                               ),
                             ),
-                            SizedBox(
-                              height: 12,
-                            ),
-
-                            /// 章节切换
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: <Widget>[
-                                 MaterialButton(
-                                  minWidth: 125,
-                                  textColor: MyColors.textPrimaryColor,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(125)),
-                                    side: BorderSide(
-                                        color: MyColors.textPrimaryColor,
-                                        width: 1),
-                                  ),
-                                  onPressed: () {
-                                    if (bookItem.chaptersIndex == 0) {
-                                      Fluttertoast.showToast(
-                                          msg: "没有上一章了", fontSize: 14.0);
-                                    } else {
-                                      setState(() {
-                                        _loadStatus = LoadStatus.LOADING;
-                                      });
-                                      bookItem.offset = 0;
-                                      bookItem.chaptersIndex--;
-                                      this.getChapterContent(bookItem.chaptersIndex);
-                                    }
-                                  },
-                                  child: Text("上一章"),
-                                ),
-                                MaterialButton(
-                                  minWidth: 125,
-                                  textColor: MyColors.textPrimaryColor,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(125)),
-                                    side: BorderSide(
-                                        color: MyColors.textPrimaryColor,
-                                        width: 1),
-                                  ),
-                                  onPressed: () {
-                                    if (bookItem.chaptersIndex >= _listBean.length - 1) {
-                                      Fluttertoast.showToast(
-                                          msg: "没有下一章了", fontSize: 14.0);
-                                    } else {
-                                      setState(() {
-                                        _loadStatus = LoadStatus.LOADING;
-                                      });
-                                      bookItem.offset = 0;
-                                      bookItem.chaptersIndex++;
-                                      this.getChapterContent(bookItem.chaptersIndex);
-                                    }
-                                  },
-                                  child: Text("下一章"),
-                                ),
-                              ],
-                            ),
-                            SizedBox(
-                              height: 16,
-                            ),
+                            // SizedBox(
+                            //   height: 12,
+                            // ),
+                            //
+                            // /// 章节切换
+                            // Row(
+                            //   mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            //   children: <Widget>[
+                            //      MaterialButton(
+                            //       minWidth: 125,
+                            //       textColor: MyColors.textPrimaryColor,
+                            //       shape: RoundedRectangleBorder(
+                            //         borderRadius:
+                            //             BorderRadius.all(Radius.circular(125)),
+                            //         side: BorderSide(
+                            //             color: MyColors.textPrimaryColor,
+                            //             width: 1),
+                            //       ),
+                            //       onPressed: () {
+                            //         if (bookItem.chaptersIndex == 0) {
+                            //           Fluttertoast.showToast(
+                            //               msg: "没有上一章了", fontSize: 14.0);
+                            //         } else {
+                            //           setState(() {
+                            //             _loadStatus = LoadStatus.LOADING;
+                            //           });
+                            //           bookItem.offset = 0;
+                            //           bookItem.chaptersIndex--;
+                            //           this.getChapterContent(bookItem.chaptersIndex);
+                            //         }
+                            //       },
+                            //       child: Text("上一章"),
+                            //     ),
+                            //     MaterialButton(
+                            //       minWidth: 125,
+                            //       textColor: MyColors.textPrimaryColor,
+                            //       shape: RoundedRectangleBorder(
+                            //         borderRadius:
+                            //             BorderRadius.all(Radius.circular(125)),
+                            //         side: BorderSide(
+                            //             color: MyColors.textPrimaryColor,
+                            //             width: 1),
+                            //       ),
+                            //       onPressed: () {
+                            //         if (bookItem.chaptersIndex >= _listBean.length - 1) {
+                            //           Fluttertoast.showToast(
+                            //               msg: "没有下一章了", fontSize: 14.0);
+                            //         } else {
+                            //           setState(() {
+                            //             _loadStatus = LoadStatus.LOADING;
+                            //           });
+                            //           bookItem.offset = 0;
+                            //           bookItem.chaptersIndex++;
+                            //           this.getChapterContent(bookItem.chaptersIndex);
+                            //         }
+                            //       },
+                            //       child: Text("下一章"),
+                            //     ),
+                            //   ],
+                            // ),
+                            // SizedBox(
+                            //   height: 16,
+                            // ),
                           ],
                         ),
                       ),
