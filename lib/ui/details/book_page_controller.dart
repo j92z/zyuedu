@@ -1,8 +1,4 @@
 
-
-
-import 'package:flutter/cupertino.dart';
-
 class BookPageController {
 
   static final double heightWithRatio = 38 / 31;
@@ -25,50 +21,63 @@ class BookPageController {
     var oneLine = content.split("");
     var firstHeight = height - titleHeight;
     var textNum = width ~/ fontSize;
-    var firstLineNum = firstHeight ~/ (fontSize * heightWithRatio + spaceSize);
-    var lineNum = height ~/ (fontSize * heightWithRatio + spaceSize);
+    var firstLineNum = firstHeight ~/ (fontSize * spaceSize);
+    var lineNum = height ~/ (fontSize * spaceSize);
     double count = 0;
+    bool equal = false;
     List<String> list = [];
     List<String> itemList = [];
-    print(content.substring(content.length - 100));
-    for (var i in oneLine) {
-      if (i == " ") {
+    for (var k = 0; k < oneLine.length; k++) {
+      var i = oneLine[k];
+      if (i == " " || i == "." || i == ",") {
         count += 0.25;
-        if (count >= textNum) {
-          list.add(itemList.join());
-          itemList = [];
-          count = 0;
-        } else {
-          itemList.add(i);
-        }
+      } else if (i == "“" || i == "”") {
+        count += 0.5;
       } else if (i == "\n") {
-        itemList.add(i);
+        if (itemList.isNotEmpty) {
+          itemList.add(i);
+          list.add(itemList.join());
+        }
+        itemList = [];
+        count = 0;
+        continue;
+      } else {
+        count += 1;
+      }
+      if (count >= textNum) {
+        if (count == textNum) {
+          itemList.add(i + "\n");
+          equal = true;
+        }
         list.add(itemList.join());
         itemList = [];
         count = 0;
-      } else {
-        count += 1;
-        if (count >= textNum) {
+      }
+      if (count == textNum - 1) {
+        var nextII = oneLine[k+2]??"";
+        if (nextII == "，" || nextII == "。" || nextII == "！" || nextII == "？") {
+          itemList.add(i + "\n");
+          equal = true;
           list.add(itemList.join());
           itemList = [];
           count = 0;
-        } else {
-          itemList.add(i);
         }
+      }
+      if (!equal) {
+        itemList.add(i);
+      } else {
+        equal = false;
       }
       if ((pages.length == 0 && list.length >= firstLineNum) || list.length >= lineNum) {
         pages.add(list.join());
         list = [];
       }
     }
-    print(itemList);
-    print(list.length);
-    print(firstLineNum);
-    print(lineNum);
     if (itemList.isNotEmpty) {
       list.add(itemList.join());
     }
     if (list.isNotEmpty) {
+      list.add(List.filled(lineNum - list.length , "\n").join());
       pages.add(list.join());
     }
     pageNum = back ? pages.length : 1;

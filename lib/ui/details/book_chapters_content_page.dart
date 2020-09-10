@@ -78,6 +78,8 @@ class BookContentPageState extends State<BookContentPage>
         _spaceValue = value;
       });
     });
+    print(_textSizeValue);
+    print(_spaceValue);
     getChaptersListData();
     setStemStyle();
   }
@@ -175,7 +177,6 @@ class BookContentPageState extends State<BookContentPage>
                 var x = detail.globalPosition.dx / size.width;
                 var y = detail.globalPosition.dy / size.height;
                 int type = pageController.getPanType(x, y);
-                print(type);
                 if (type == PanType.menu) {
                   toggleMenu();
                 } else if (type == PanType.last) {
@@ -229,7 +230,6 @@ class BookContentPageState extends State<BookContentPage>
                         padding: EdgeInsets.fromLTRB(
                           16,
                           16 + MediaQuery.of(context).padding.top,
-                          // 0,
                           9,
                           0,
                         ),
@@ -254,16 +254,6 @@ class BookContentPageState extends State<BookContentPage>
                                 )
                               ],
                             ): SizedBox(),
-                            // Text(
-                            //   _title,
-                            //   style: TextStyle(
-                            //     fontSize: _textSizeValue + 2,
-                            //     color: Color(0xFF9F8C54),
-                            //   ),
-                            // ),
-                            // SizedBox(
-                            //   height: 16,
-                            // ),
                             Text(
                               _content,
                               style: TextStyle(
@@ -274,69 +264,6 @@ class BookContentPageState extends State<BookContentPage>
                                 height: _spaceValue,
                               ),
                             ),
-                            // SizedBox(
-                            //   height: 12,
-                            // ),
-                            //
-                            // /// 章节切换
-                            // Row(
-                            //   mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            //   children: <Widget>[
-                            //      MaterialButton(
-                            //       minWidth: 125,
-                            //       textColor: MyColors.textPrimaryColor,
-                            //       shape: RoundedRectangleBorder(
-                            //         borderRadius:
-                            //             BorderRadius.all(Radius.circular(125)),
-                            //         side: BorderSide(
-                            //             color: MyColors.textPrimaryColor,
-                            //             width: 1),
-                            //       ),
-                            //       onPressed: () {
-                            //         if (bookItem.chaptersIndex == 0) {
-                            //           Fluttertoast.showToast(
-                            //               msg: "没有上一章了", fontSize: 14.0);
-                            //         } else {
-                            //           setState(() {
-                            //             _loadStatus = LoadStatus.LOADING;
-                            //           });
-                            //           bookItem.offset = 0;
-                            //           bookItem.chaptersIndex--;
-                            //           this.getChapterContent(bookItem.chaptersIndex);
-                            //         }
-                            //       },
-                            //       child: Text("上一章"),
-                            //     ),
-                            //     MaterialButton(
-                            //       minWidth: 125,
-                            //       textColor: MyColors.textPrimaryColor,
-                            //       shape: RoundedRectangleBorder(
-                            //         borderRadius:
-                            //             BorderRadius.all(Radius.circular(125)),
-                            //         side: BorderSide(
-                            //             color: MyColors.textPrimaryColor,
-                            //             width: 1),
-                            //       ),
-                            //       onPressed: () {
-                            //         if (bookItem.chaptersIndex >= _listBean.length - 1) {
-                            //           Fluttertoast.showToast(
-                            //               msg: "没有下一章了", fontSize: 14.0);
-                            //         } else {
-                            //           setState(() {
-                            //             _loadStatus = LoadStatus.LOADING;
-                            //           });
-                            //           bookItem.offset = 0;
-                            //           bookItem.chaptersIndex++;
-                            //           this.getChapterContent(bookItem.chaptersIndex);
-                            //         }
-                            //       },
-                            //       child: Text("下一章"),
-                            //     ),
-                            //   ],
-                            // ),
-                            // SizedBox(
-                            //   height: 16,
-                            // ),
                           ],
                         ),
                       ),
