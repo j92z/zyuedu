@@ -11,6 +11,7 @@ import 'package:zyuedu/res/colors.dart';
 import 'package:zyuedu/res/dimens.dart';
 import 'package:zyuedu/ui/bookshelf/book_item.dart';
 import 'package:zyuedu/ui/details/book_info_page.dart';
+import 'package:zyuedu/ui/details/book_page_controller.dart';
 import 'package:zyuedu/widget/load_view.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,6 +41,7 @@ class BookContentPageState extends State<BookContentPage>
   static final double _addBookshelfWidth = 95;
   static final double _bottomHeight = 200;
   static final double _sImagePadding = 20;
+  bool drawMenu = false;
 
   LoadStatus _loadStatus = LoadStatus.LOADING;
   final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
@@ -60,7 +62,9 @@ class BookContentPageState extends State<BookContentPage>
   DetailSource source;
   BookItem bookItem;
   double menuHeight = 53;
-  GlobalKey txtKey = GlobalKey();
+  BookPageController pageController = BookPageController();
+  int pageNum = 1;
+
   @override
   void initState() {
     super.initState();
@@ -74,66 +78,20 @@ class BookContentPageState extends State<BookContentPage>
         _spaceValue = value;
       });
     });
-
     getChaptersListData();
     setStemStyle();
   }
 
-  void calcContent() {
-    // print(_textSizeValue);
-    // print(_spaceValue);
+  void calcContent(bool back) {
     final size =MediaQuery.of(context).size;
-    var oneLine = _content.split("");
-    print(size);
-    // print(oneLine);
     var pureWidth = size.width - 16 - 9;
-    var firstPureHeight = size.height - 16 - MediaQuery.of(context).padding.top - _textSizeValue - 2 - 16;
     var pureHeight = size.height - 16 - MediaQuery.of(context).padding.top;
-    print(pureWidth);
-    print(firstPureHeight);
-    print(pureHeight);
-    var heightWithRatio = 38 / 31;
-    var textNum = pureWidth ~/ _textSizeValue;
-    var firstLineNum = firstPureHeight ~/ (_textSizeValue * heightWithRatio + _spaceValue);
-    var lineNum = pureHeight ~/ (_textSizeValue * heightWithRatio + _spaceValue);
-    print(textNum);
-    print(firstLineNum);
-    print(lineNum);
-    // return;
-    double count = 0;
-    List<String> list = [];
-    List<String> itemList = [];
-    for (var i in oneLine) {
-      if (i == " ") {
-        count += 0.25;
-        if (count >= textNum) {
-          list.add(itemList.join());
-          itemList = [];
-          count = 0;
-        } else {
-          itemList.add(i);
-        }
-      } else if (i == "\n") {
-        itemList.add(i);
-        list.add(itemList.join());
-        itemList = [];
-        count = 0;
-      } else {
-        count += 1;
-        if (count >= textNum) {
-          list.add(itemList.join());
-          itemList = [];
-          count = 0;
-        } else {
-          itemList.add(i);
-        }
-      }
-      if (list.length >= firstLineNum) {
-        break;
-      }
-    }
+    var titleHeight = _textSizeValue + 2 + 16;
+    pageController.createContent(_content, pureWidth, pureHeight, titleHeight, _textSizeValue, _spaceValue, back);
+
     setState(() {
-      _content = list.join();
+      pageNum = pageController.pageNum;
+      _content = pageController.content();
     });
   }
 
@@ -209,21 +167,57 @@ class BookContentPageState extends State<BookContentPage>
       body: Stack(
         children: <Widget>[
           GestureDetector(
-            onTap: () {
-              setState(() {
-                _bottomPadding == 0
-                    ? _bottomPadding = _bottomHeight
-                    : _bottomPadding = 0;
-                _height == Dimens.titleHeight
-                    ? _height = 0
-                    : _height = Dimens.titleHeight;
-                _imagePadding == 0
-                    ? _imagePadding = _sImagePadding
-                    : _imagePadding = 0;
-                _addBookshelfPadding == 0
-                    ? _addBookshelfPadding = _addBookshelfWidth
-                    : _addBookshelfPadding = 0;
-              });
+            onPanDown: (detail) {
+              if (drawMenu) {
+                toggleMenu();
+              } else {
+                final size =MediaQuery.of(context).size;
+                var x = detail.globalPosition.dx / size.width;
+                var y = detail.globalPosition.dy / size.height;
+                int type = pageController.getPanType(x, y);
+                print(type);
+                if (type == PanType.menu) {
+                  toggleMenu();
+                } else if (type == PanType.last) {
+                  if (!pageController.isFirst()) {
+                    setState(() {
+                      _content = pageController.previous();
+                      pageNum = pageController.pageNum;
+                    });
+                  } else {
+                      if (bookItem.chaptersIndex == 0) {
+                        Fluttertoast.showToast(
+                            msg: "没有上一章了", fontSize: 14.0);
+                      } else {
+                        setState(() {
+                          _loadStatus = LoadStatus.LOADING;
+                        });
+                        bookItem.offset = 0;
+                        bookItem.chaptersIndex--;
+                        this.getChapterContent(bookItem.chaptersIndex, true);
+                      }
+                  }
+                } else {
+                  if (!pageController.isLast()) {
+                    setState(() {
+                      _content = pageController.next();
+                      pageNum = pageController.pageNum;
+                    });
+                  } else {
+                      if (bookItem.chaptersIndex >= _listBean.length - 1) {
+                        Fluttertoast.showToast(
+                            msg: "没有下一章了", fontSize: 14.0);
+                      } else {
+                        setState(() {
+                          _loadStatus = LoadStatus.LOADING;
+                        });
+                        bookItem.offset = 0;
+                        bookItem.chaptersIndex++;
+                        this.getChapterContent(bookItem.chaptersIndex, false);
+                      }
+                  }
+                }
+              }
             },
             child: _loadStatus == LoadStatus.LOADING
                 ? LoadingView()
@@ -231,7 +225,7 @@ class BookContentPageState extends State<BookContentPage>
                     ? FailureView(this)
                     : SingleChildScrollView(
                         controller: _controller,
-                        physics: false ? AlwaysScrollableScrollPhysics() :NeverScrollableScrollPhysics(),
+                        physics: true ? AlwaysScrollableScrollPhysics() :NeverScrollableScrollPhysics(),
                         padding: EdgeInsets.fromLTRB(
                           16,
                           16 + MediaQuery.of(context).padding.top,
@@ -246,16 +240,30 @@ class BookContentPageState extends State<BookContentPage>
                             //   height: 16 + MediaQuery.of(context).padding.top,
                             //   // height: 20,
                             // ),
-                            Text(
-                              _title,
-                              style: TextStyle(
-                                fontSize: _textSizeValue + 2,
-                                color: Color(0xFF9F8C54),
-                              ),
-                            ),
-                            SizedBox(
-                              height: 16,
-                            ),
+                            pageNum == 1 ? Column(
+                              children: [
+                                Text(
+                                  _title,
+                                  style: TextStyle(
+                                    fontSize: _textSizeValue + 2,
+                                    color: Color(0xFF9F8C54),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 16,
+                                )
+                              ],
+                            ): SizedBox(),
+                            // Text(
+                            //   _title,
+                            //   style: TextStyle(
+                            //     fontSize: _textSizeValue + 2,
+                            //     color: Color(0xFF9F8C54),
+                            //   ),
+                            // ),
+                            // SizedBox(
+                            //   height: 16,
+                            // ),
                             Text(
                               _content,
                               style: TextStyle(
@@ -347,6 +355,16 @@ class BookContentPageState extends State<BookContentPage>
         ],
       ),
     );
+  }
+
+  void toggleMenu() {
+    setState(() {
+      drawMenu = !drawMenu;
+      _bottomPadding = _bottomPadding == 0 ? _bottomHeight : 0;
+      _height = _height == Dimens.titleHeight ? 0 : Dimens.titleHeight;
+      _addBookshelfPadding = _addBookshelfPadding == 0 ? _addBookshelfWidth : 0;
+      _imagePadding = _imagePadding == _sImagePadding ? 0 : _sImagePadding;
+    });
   }
 
   //隐藏设置view
@@ -631,7 +649,7 @@ class BookContentPageState extends State<BookContentPage>
               _loadStatus = LoadStatus.LOADING;
               bookItem.offset = 0;
               bookItem.chaptersIndex = index;
-              this.getChapterContent(index);
+              this.getChapterContent(index, false);
             });
             Navigator.pop(context);
           },
@@ -719,10 +737,10 @@ class BookContentPageState extends State<BookContentPage>
           0,
           0);
     });
-    this.getChapterContent(bookItem.chaptersIndex);
+    this.getChapterContent(bookItem.chaptersIndex, false);
   }
 
-  void getChapterContent(int index) async {
+  void getChapterContent(int index, bool back) async {
     if (index == null ||index < 0) {
       index = 0;
     }
@@ -738,7 +756,7 @@ class BookContentPageState extends State<BookContentPage>
       });
     });
     this.setScrollController();
-    this.calcContent();
+    this.calcContent(back);
   }
 
   void setScrollController() {
@@ -795,7 +813,7 @@ class BookContentPageState extends State<BookContentPage>
   @override
   void onReload() {
     _loadStatus = LoadStatus.LOADING;
-    this.getChapterContent(bookItem.chaptersIndex);
+    this.getChapterContent(bookItem.chaptersIndex, false);
   }
 
   @override
